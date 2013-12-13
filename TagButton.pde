@@ -1,14 +1,16 @@
-class TagButton extends GuiElement{
+class TagButton extends GuiElement {
   String text;
   PFont font;
   // we might want to change the color to match the wanted color
   color c = color(50, 180, 220);
-  
-  
-  
- TagButton(int x_, int y_, Integer width_, Integer height_, String text_, PFont font_) {
+  Rectangle originalPosition;
+
+
+
+  TagButton(int x_, int y_, Integer width_, Integer height_, String text_, PFont font_) {
     super(x_, y_, width_, height_);
-    this.draggable = false;
+    originalPosition = new Rectangle(this.boundingBox);
+    this.draggable = true;
     if (text_ != null) {
       text = text_.toUpperCase();
     } 
@@ -23,39 +25,37 @@ class TagButton extends GuiElement{
       font = createFont("RobotoCondensed-Bold", 18);
     }
   }
-  
-  void update( ){
+
+  void update( ) {
     super.update();
-    
+
     //we want action if we move a tag inside the scan area -> making it dissapear & adding the tag to the image
-    if(scanArea.boundingBox.contains(this.boundingBox.getCenterX(), this.boundingBox.getCenterY())){
-      println("adding " + this.text + " to the element");
-      tags.remove(this);
-      globalElementDragged = false;
-    }
-    
-    // creating a copy of the tag if user is over the tag more than seconds
-    // TODO: as we only have the same tag once -> we can actually use the tag itself, drag it, and if dropped on the area, add it to the image, otherwise
-    // let it move back to its position. If a photo was succesfully taken: let all tags bounce back to their initial position
-    //if we take a photo
-    if( (this.fingerOverTime > 1000.0) && this.draggable == false){
-      TagButton copiedTag = new TagButton(this.boundingBox.x, this.boundingBox.y, this.boundingBox.width, this.boundingBox.height, this.text, this.font);
-      copiedTag.draggable = true;
-      copiedTag.dragged = true;
-      copiedTag.fingerOverTime = 1600;
-      println("adding copied tag");
-      tags.add(copiedTag);
-      this.fingerOverTime = 0.0;
-      
-     //create a copy and let that be draggable!
-    } else if(this.draggable == true){
-      if(this.fingerOverTime == 0) {
-        tags.remove(this);
+    if (this.dragged == true) {
+      if ((this.fingerOverTime == 0)) {
+        this.boundingBox.setLocation(originalPosition.x, originalPosition.y);
+        if (addedTags.contains(this)) addedTags.remove(this);
         globalElementDragged = false;
+      } 
+      else {
+        this.boundingBox.setLocation((int) (fingerPos.x - this.boundingBox.width/2), (int) (fingerPos.y - this.boundingBox.height/2));
       }
-    }    
+      
+      // if tag is inside scan area -> either add it to the current photo, or make it dragging again to remove it
+      if (scanArea.boundingBox.contains(this.boundingBox.getCenterX(), this.boundingBox.getCenterY())) {
+        if (addedTags.contains(this) == false) {
+
+          println("adding " + this.text + " to the element");
+          addedTags.add(this);
+          globalElementDragged = false;
+          this.fingerOverTime = 0;
+        } 
+        else {
+
+        }
+      }
+    }
   }
-    
+
 
   void display() {
     textFont(font);
@@ -79,7 +79,8 @@ class TagButton extends GuiElement{
     // drawing the text
     if (fingerOverTime > 100.0) {
       fill(0);
-    } else {
+    } 
+    else {
       fill(c);
     }
     rectMode(CENTER);
@@ -87,6 +88,4 @@ class TagButton extends GuiElement{
     text(text, (float) this.boundingBox.getCenterX(), (float) this.boundingBox.getCenterY());
     //here custom graphics. not using a loaded image
   }
-  
-  
 }
