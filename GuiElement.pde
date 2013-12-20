@@ -19,14 +19,22 @@ class GuiElement {
   */
 
   GuiElement(int x_, int y_, PImage img, PImage hoverImg, Integer width_, Integer height_) {
-    boundingBox = new Rectangle(x_, y_, width_, height_);
+    if(width_ == null && height_ == null){
+      boundingBox = new Rectangle(x_, y_, (int)img.width,(int) img.height);
+    } else {
+      boundingBox = new Rectangle(x_, y_, width_, height_);
+    }
     pixelImage = img;
     pixelHoverImage = hoverImg;
     vectorImage = null;
   }
 
   GuiElement(int x_, int y_, PShape img, PShape hoverImg, Integer width_, Integer height_) {
-    boundingBox = new Rectangle(x_, y_, width_, height_);
+    if(width_ == null && height_ == null){
+      boundingBox = new Rectangle(x_, y_, (int) img.width, (int) img.height);
+    } else {
+      boundingBox = new Rectangle(x_, y_, width_, height_);
+    }
     pixelImage = null;
     vectorImage = img;  
     vectorHoverImage = hoverImg;

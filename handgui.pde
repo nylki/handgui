@@ -30,7 +30,10 @@ GuiElement scanButton;
 GuiElement caption1, caption2;
 ScanArea scanArea;
 ArrayList<TagButton> tags = new ArrayList<TagButton>();
+<<<<<<< HEAD
 ArrayList<TagButton> draggedTags = new ArrayList<TagButton>();
+=======
+>>>>>>> 1ab0fff90004a76a0c5680c01dd7e54692a8d61b
 ArrayList<TagButton> addedTags = new ArrayList<TagButton>();
 boolean globalElementDragged = false;
 PImage lastPhoto = null;
