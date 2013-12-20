@@ -4,7 +4,7 @@ class GuiElement {
   PShape vectorImage, vectorHoverImage;
   float fingerOverTime = 0.0;
   float fingerOverStarted = 0.0;
-  final Integer TIMEUNTILACTION = 500;
+  final Integer TIMEUNTILACTION = 800;
   boolean dragged = false;
   boolean draggable = false;
   boolean clicked = false;
@@ -42,13 +42,11 @@ class GuiElement {
   
   void updateDrag(){
     if (globalElementDragged == false && fingerOverTime > 2000) dragged = true;
-    if (fingerOverTime < 2000) dragged = false;
-    if (dragged) {
+    if (fingerOverTime < 1000) dragged = false;
+    if (dragged)
       globalElementDragged = true;
-      if(fingerOverTime > TIMEUNTILACTION){
-        this.boundingBox.setLocation((int) (fingerPos.x - boundingBox.width/2), (int) (fingerPos.y - boundingBox.height/2));
-    }
-  }
+
+
   }
   
   
