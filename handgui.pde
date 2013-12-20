@@ -30,10 +30,9 @@ GuiElement scanButton;
 GuiElement caption1, caption2;
 ScanArea scanArea;
 ArrayList<TagButton> tags = new ArrayList<TagButton>();
-<<<<<<< HEAD
+
 ArrayList<TagButton> draggedTags = new ArrayList<TagButton>();
-=======
->>>>>>> 1ab0fff90004a76a0c5680c01dd7e54692a8d61b
+
 ArrayList<TagButton> addedTags = new ArrayList<TagButton>();
 boolean globalElementDragged = false;
 PImage lastPhoto = null;
@@ -82,7 +81,7 @@ void setup() {
     for (int i = 0; i < cameras.length; i++) {
       println(cameras[i]);
     }
-    cam = new Capture(this); //cam 13 is what we want
+    cam = new Capture(this, cameras[13]); //cam 13 is what we want
     cam.start();
   }
   opencv = new OpenCV(this, 640, 480);
@@ -108,20 +107,38 @@ void update(){
   scanArea.update();
   if(scanArea.calibrated == false) return;
   scanButton.update();
-  if (scanButton.clicked == true) scanArea.takePhoto();
+  if (scanButton.clicked == true){
+    println("taking scan photo");
+    scanArea.takePhoto();
+  }
 
   caption1.update();
   caption2.update();
   for (int i = 0; i < tags.size(); i++)
     tags.get(i).update();
-  
-  //arrange the added tags on the bottom
+    
   TagButton t;
-    for (int i = 0; i < addedTags.size(); i++){
-      t = addedTags.get(i);
-      t.boundingBox.setLocation( 25 + (i * t.boundingBox.width), height - t.boundingBox.height - 10);  
+  int draggedTagCount = draggedTags.size();
+  // arange the dragged tags around the mouse
+  for (int i = 0; i < draggedTagCount; i++){
+      t = draggedTags.get(i);
+      //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
+      if(draggedTagCount < 3){
+        t.boundingBox.setLocation((int) (fingerPos.x + (i * t.boundingBox.width)), (int) (fingerPos.y - t.boundingBox.height - 10));  
+      } else {
+        // calculate positions (circle around the mouse)
+       float radians = radians((360/draggedTagCount) * (i+1));
+       float newX = fingerPos.x + (cos(radians) * (t.boundingBox.width + 30));
+       float newY = fingerPos.y + (sin(radians) * (t.boundingBox.height + 30));
+       t.boundingBox.setLocation((int) newX, (int) newY);  
+      }
   }
   
+  //arrange the added tags on the bottom
+    for (int i = 0; i < addedTags.size(); i++){
+      t = addedTags.get(i);
+      t.boundingBox.setLocation( 25 + (i * t.boundingBox.width),  t.boundingBox.height + 10);  
+  }
 }
 
 

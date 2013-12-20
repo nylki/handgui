@@ -49,12 +49,11 @@ class GuiElement {
   }
   
   void updateDrag(){
-    if (globalElementDragged == false && fingerOverTime > 2000) dragged = true;
-    if (fingerOverTime < 1000) dragged = false;
-    if (dragged)
-      globalElementDragged = true;
-
-
+    if (fingerOverTime > 2000){
+      dragged = true;
+    } else{
+      dragged = false;
+    }
   }
   
   

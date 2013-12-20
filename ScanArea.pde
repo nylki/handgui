@@ -167,12 +167,14 @@ class ScanArea extends GuiElement {
   }
 
   void checkTakingPhoto() {
+    
     lastPhoto = null;
     if (photoStarted != 0) {
       //if 2 seconds are over, take the actual photo
-
-      if (cam.available() == true && brightness > 120) {
+      if(brightness > 80) println("brightness reached, taking actual photo");
+      if (cam.available() && brightness > 80) {
         println("now taking photo");
+        
         cam.read();
         lastPhoto = warpPerspective(cam, unwarpedPoints, canonicalPoints, refSize);
 
@@ -191,7 +193,10 @@ class ScanArea extends GuiElement {
     } 
     else {
     }
+    
     super.update();
+    checkTakingPhoto();
+    
 
     //if you want to see the calibration image with the recognized box, uncomment the following lines:
     // show calibrated shape with red
@@ -210,7 +215,7 @@ class ScanArea extends GuiElement {
   void display() {  
     //showing white >>flash<< when photostarte
     if (photoStarted > 0) {
-      brightness = constrain(brightness+5, 0, 128);
+      brightness = constrain(brightness+1, 0, 95);
       fill(brightness);
       rectMode(CORNER);
       rect(0, 0, width, height);

@@ -25,32 +25,56 @@ class TagButton extends GuiElement {
       font = createFont("RobotoCondensed-Bold", 18);
     }
   }
+  
+  
+  void updateDrag(){
+    boolean draggedBeforeUpdate = this.dragged;
+    super.updateDrag();
+    if(this.dragged == true && draggedBeforeUpdate == false){
+      //just started the drag
+      draggedTags.add(this); 
+    } else if (this.dragged == false && draggedBeforeUpdate == true){
+      //todo: this should do nothing
+     //draggedTags.remove(this);
+    } 
+  }
 
-  void update( ) {
+  void update() {
     super.update();
 
     //we want action if we move a tag inside the scan area -> making it dissapear & adding the tag to the image
-    if (this.dragged == true) {
-      if ((this.fingerOverTime == 0)) {
-        this.boundingBox.setLocation(originalPosition.x, originalPosition.y);
-        if (addedTags.contains(this)) addedTags.remove(this);
-        globalElementDragged = false;
+    if (draggedTags.contains(this)) {
+      if (leap.hasFingers() == false) {
+        if(addedTags.contains(this) == false) 
+          this.boundingBox.setLocation(originalPosition.x, originalPosition.y);
+        draggedTags.remove(this);
+        // if this is an added tag, the finger is removed
+        //if (addedTags.contains(this)) addedTags.remove(this);
       } 
-      else {
-        this.boundingBox.setLocation((int) (fingerPos.x - this.boundingBox.width/2), (int) (fingerPos.y - this.boundingBox.height/2));
+      else /* if leap has fingers */ {
+        //do nothing, as location setting will be done for all elements around the fingerposition
+        //this.boundingBox.setLocation((int) (fingerPos.x - this.boundingBox.width/2), (int) (fingerPos.y - this.boundingBox.height/2));
       }
       
-      // if tag is inside scan area -> either add it to the current photo, or make it dragging again to remove it
-      if (scanArea.boundingBox.contains(this.boundingBox.getCenterX(), this.boundingBox.getCenterY())) {
+      // if tag/finger is inside scan area -> either add it to the current photo, or make it dragging again to remove it
+      //TODO: implement previousFinder so we can check wether finger was in ther ebefore
+      if (scanArea.boundingBox.contains(fingerPos.x, fingerPos.y)) {
         if (addedTags.contains(this) == false) {
 
           println("adding " + this.text + " to the element");
           addedTags.add(this);
+          draggedTags.remove(this);
           globalElementDragged = false;
           this.fingerOverTime = 0;
         } 
         else {
-
+          draggedTags.add(this);
+          if(addedTags.contains(this)) {
+            this.boundingBox.setLocation(originalPosition.x, originalPosition.y);
+            addedTags.remove(this);
+            draggedTags.remove(this);
+            
+          }
         }
       }
     }
