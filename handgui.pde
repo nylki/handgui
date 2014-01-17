@@ -51,10 +51,11 @@ void setup() {
   colorMode(RGB, 255, 255, 255);
   PImage scanButtonImage = loadImage("capture_2.png" );
   PImage scanButtonImage_hover = loadImage("capture_1.png" );
-  
+
   PShape scanAreaImage = loadShape("frame-03.svg");
   scanButton = new GuiElement((int) (width - scanButtonImage.width/2) -50, (int) (height-scanButtonImage.height/2) -50, scanButtonImage, scanButtonImage_hover, (int) scanButtonImage.width/2, (int) scanButtonImage.height/2);
-  scanArea = new ScanArea(0, 0, scanAreaImage, scanAreaImage, (int) scanAreaImage.width, (int) scanAreaImage.height);
+
+  scanArea = new ScanArea(0, 0, scanAreaImage, scanAreaImage, (int) scanAreaImage.width * 9/10, (int) scanAreaImage.height * 9/10);
   tags.add(new TagButton(width - 300, 50, 100, 50, "Journal", null));
   tags.add(new TagButton(width - 300, 110, 100, 50, "Book", null));
   tags.add(new TagButton(width - 300, 170, 100, 50, "note", null));
@@ -63,7 +64,7 @@ void setup() {
   tags.add(new TagButton(width - 200, 110, 100, 50, "model", null));
   tags.add(new TagButton(width - 200, 170, 100, 50, "techniques", null));
   tags.add(new TagButton(width - 200, 230, 100, 50, "fluid", null));
-  
+
   PImage caption1_image = loadImage("keyword.png");
   PImage caption2_image = loadImage("category.png");
   caption1 = new GuiElement(width - 320, 10, caption1_image, caption1_image, caption1_image.width/2, caption1_image.height/2);
@@ -87,27 +88,24 @@ void setup() {
   opencv = new OpenCV(this, 640, 480);
 }
 
-void update(){
-    if (cam.available() == true)
+void update() {
+  if (cam.available() == true)
     cam.read();
-  
+
   fingers = leap.getFingers();
   if (leap.hasFingers()) {
-    //
     //for(Finger f : fingers) {
-    
     frontFinger = leap.getFrontFinger();
     fingerPos = frontFinger.getPosition();
     fingerPos.y = map(fingerPos.z, 80, 10, 0, height);
     fingerPos.x += 450;
     fingerPos.y += 100;
-    
   }
-    //updating scanArea will also update photo taking
+  //updating scanArea will also update photo taking
   scanArea.update();
-  if(scanArea.calibrated == false) return;
+  if (scanArea.calibrated == false) return;
   scanButton.update();
-  if (scanButton.clicked == true){
+  if (scanButton.clicked == true) {
     println("taking scan photo");
     scanArea.takePhoto();
   }
@@ -116,28 +114,29 @@ void update(){
   caption2.update();
   for (int i = 0; i < tags.size(); i++)
     tags.get(i).update();
-    
+
   TagButton t;
   int draggedTagCount = draggedTags.size();
   // arange the dragged tags around the mouse
-  for (int i = 0; i < draggedTagCount; i++){
-      t = draggedTags.get(i);
-      //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
-      if(draggedTagCount < 3){
-        t.boundingBox.setLocation((int) (fingerPos.x + (i * t.boundingBox.width)), (int) (fingerPos.y - t.boundingBox.height - 10));  
-      } else {
-        // calculate positions (circle around the mouse)
-       float radians = radians((360/draggedTagCount) * (i+1));
-       float newX = fingerPos.x + (cos(radians) * (t.boundingBox.width + 30));
-       float newY = fingerPos.y + (sin(radians) * (t.boundingBox.height + 30));
-       t.boundingBox.setLocation((int) newX, (int) newY);  
-      }
+  for (int i = 0; i < draggedTagCount; i++) {
+    t = draggedTags.get(i);
+    //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
+    if (draggedTagCount < 3) {
+      t.boundingBox.setLocation((int) (fingerPos.x + (i * t.boundingBox.width)), (int) (fingerPos.y - t.boundingBox.height - 10));
+    } 
+    else {
+      // calculate positions (circle around the mouse)
+      float radians = radians((360/draggedTagCount) * (i+1));
+      float newX = fingerPos.x + (cos(radians) * (t.boundingBox.width + 10));
+      float newY = fingerPos.y + (sin(radians) * (t.boundingBox.height + 10));
+      t.boundingBox.setLocation((int) newX, (int) newY);
+    }
   }
-  
+
   //arrange the added tags on the bottom
-    for (int i = 0; i < addedTags.size(); i++){
-      t = addedTags.get(i);
-      t.boundingBox.setLocation( 25 + (i * t.boundingBox.width),  t.boundingBox.height + 10);  
+  for (int i = 0; i < addedTags.size(); i++) {
+    t = addedTags.get(i);
+    t.boundingBox.setLocation( 25 + (i * t.boundingBox.width), t.boundingBox.height + 10);
   }
 }
 
@@ -145,14 +144,14 @@ void update(){
 void draw() {
   background(0);
   update();
-  if(scanArea.calibrated == false) return;
-  
-  if(leap.hasFingers())
+  if (scanArea.calibrated == false) return;
+
+  if (leap.hasFingers())
     ellipse(fingerPos.x, fingerPos.y, 20, 20);
 
   for (TagButton t : tags)
     t.display();
-  
+
   caption1.display();
   caption2.display();
 

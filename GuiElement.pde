@@ -8,6 +8,10 @@ class GuiElement {
   boolean dragged = false;
   boolean draggable = false;
   boolean clicked = false;
+  float opacity = 0.0;
+  boolean opacityDownAnimation = false;
+  int hoverAnimationDuration = TIMEUNTILACTION;
+  float hoverAnimationProgress = 0.0; //0.0 to 1.0
   
   
   
@@ -49,7 +53,7 @@ class GuiElement {
   }
   
   void updateDrag(){
-    if (fingerOverTime > 2000){
+    if (fingerOverTime > TIMEUNTILACTION){
       dragged = true;
     } else{
       dragged = false;
@@ -99,9 +103,20 @@ class GuiElement {
   }
   
     void update() {
-      
+      if(this.opacityDownAnimation == true){
+        opacity -= 7.0;
+        opacity = constrain(opacity, 0, 255);
+        if(opacity <= 1) opacityDownAnimation = false;
+      } else if( opacity < 255){
+         opacity += 7.0;
+         opacity = constrain(opacity,0, 255);
+      }
       if(draggable) updateDrag();
       updateFingerState();
+      if(fingerOverTime > 0){
+        hoverAnimationProgress = fingerOverTime / hoverAnimationDuration;
+        
+      }
 
   }
 
@@ -109,12 +124,15 @@ class GuiElement {
     //only displaying functionality here
     if (pixelImage != null) {
       if (fingerOverTime > 0.0) {
+        tint(255, map(hoverAnimationProgress, 0.0, 1.0, 255, 0));
+        image(pixelImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+        tint(255, map(hoverAnimationProgress, 0.0, 1.0, 0, 255));
         image(pixelHoverImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
       } 
       else {
-        //tint(150,255,255, 255);
+        tint(255, opacity);
         image(pixelImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
-        //noTint();
+        noTint();
       }
     }
     else if (vectorImage != null) {
@@ -122,7 +140,10 @@ class GuiElement {
         shape(vectorHoverImage, boundingBox.x, boundingBox.y);
       } 
       else {
+        //vectorImage.disableStyle();
+        //fill(255,0,0, map(mouseX, 0,width, 0, 255));
         shape(vectorImage, boundingBox.x, boundingBox.y);
+        //vectorImage.enableStyle();
       }
     } 
   }
