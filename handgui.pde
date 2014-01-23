@@ -11,12 +11,6 @@ import java.util.*;
 import java.awt.*;
 import processing.video.*;
 
-/* Laufzeitanalyse:
- button update:
- Laufzeit O(n*m) mit n=anzahl button und m=anzahl finger
- 
- */
-
 /*
  ACHTUNG: DIESER TEST IST SO KALIBRIERT, DASS DIE LEAPMOTION IN DER MITTE UND UMGEDREHT
  DES TISCHES/DISPLAYS LIEGEN MUSS. Y WERTE WERDEN ANGEPASST. GESTEN AUS DEM FRAMEWORK SIND NICHT MÖGLICH
@@ -30,16 +24,20 @@ GuiElement scanButton;
 GuiElement caption1, caption2;
 ScanArea scanArea;
 ArrayList<TagButton> tags = new ArrayList<TagButton>();
-
 ArrayList<TagButton> draggedTags = new ArrayList<TagButton>();
-
 ArrayList<TagButton> addedTags = new ArrayList<TagButton>();
 boolean globalElementDragged = false;
 PImage lastPhoto = null;
 
 //GLOBAL
 Finger frontFinger;
+Finger originalFinger;
 PVector fingerPos;
+float MIN_FINGER_VISIBLE_TIME = 0.2;
+boolean fingerInGUIElement = false; //track if finger was/is in guielement, to reduce load
+int tagHeight = 40;
+int tagWidth = 80;
+int tagDistance = 10;
 
 
 ArrayList<PImage> imageList = new ArrayList<PImage>();
@@ -47,30 +45,41 @@ ArrayList<PImage> imageList = new ArrayList<PImage>();
 
 void setup() {
   size(displayWidth, displayHeight, P2D);
+  noSmooth();
   background(0);
   colorMode(RGB, 255, 255, 255);
   PImage scanButtonImage = loadImage("capture_2.png" );
   PImage scanButtonImage_hover = loadImage("capture_1.png" );
 
   PShape scanAreaImage = loadShape("frame-03.svg");
-  scanButton = new GuiElement((int) (width - scanButtonImage.width/2) -50, (int) (height-scanButtonImage.height/2) -50, scanButtonImage, scanButtonImage_hover, (int) scanButtonImage.width/2, (int) scanButtonImage.height/2);
+  scanButton = new GuiElement((int) (width - scanButtonImage.width/3) -200, (int) (height-scanButtonImage.height/3) -100, scanButtonImage, scanButtonImage_hover, (int) scanButtonImage.width/2, (int) scanButtonImage.height/2);
 
   scanArea = new ScanArea(0, 0, scanAreaImage, scanAreaImage, (int) scanAreaImage.width * 9/10, (int) scanAreaImage.height * 9/10);
-  tags.add(new TagButton(width - 300, 50, 100, 50, "Journal", null));
-  tags.add(new TagButton(width - 300, 110, 100, 50, "Book", null));
-  tags.add(new TagButton(width - 300, 170, 100, 50, "note", null));
-  tags.add(new TagButton(width - 300, 230, 100, 50, "sketch", null));
-  tags.add(new TagButton(width - 200, 50, 100, 50, "Image", null));
-  tags.add(new TagButton(width - 200, 110, 100, 50, "model", null));
-  tags.add(new TagButton(width - 200, 170, 100, 50, "techniques", null));
-  tags.add(new TagButton(width - 200, 230, 100, 50, "fluid", null));
 
   PImage caption1_image = loadImage("keyword.png");
   PImage caption2_image = loadImage("category.png");
-  caption1 = new GuiElement(width - 320, 10, caption1_image, caption1_image, caption1_image.width/2, caption1_image.height/2);
-  caption2 = new GuiElement( width - 320, 300, caption2_image, caption2_image, caption2_image.width/2, caption2_image.height/2);
+  caption1 = new GuiElement(width - 400, 10, caption1_image, caption1_image, caption1_image.width/2, caption1_image.height/2);
+  caption2 = new GuiElement( width - 400, 250, caption2_image, caption2_image, caption2_image.width/2, caption2_image.height/2);
 
-  leap = new LeapMotion(this).withGestures("swipe");
+  String categories[] = loadStrings("categories.txt");
+  for (int i = 0 ; i < categories.length; i++) {
+    // spliting columns: 5 tags each column
+    int horizontalRightPosition = width - 300 - (tagWidth + tagDistance) * floor(i/4);
+    int verticalPosition = tagHeight + (i % 4) * tagHeight + (i % 4) * tagDistance;
+    tags.add(new TagButton(horizontalRightPosition, verticalPosition, tagWidth, tagHeight, categories[i], null));
+  }
+
+  String keywords[] = loadStrings("keywords.txt");
+  for (int i = 0 ; i < keywords.length; i++) {
+    // spliting columns: 5 tags each column
+    int horizontalRightPosition = width - 250 - (tagWidth*2 + tagDistance) * floor(i/3);
+    int verticalPosition = 280 + (i % 3) * tagHeight + (i % 3) * tagDistance;
+    tags.add(new TagButton(horizontalRightPosition, verticalPosition, tagWidth*2, tagHeight, keywords[i], null));
+  }
+
+
+
+  leap = new LeapMotion(this).withGestures();
   String[] cameras = Capture.list();
 
   if (cameras.length == 0) {
@@ -94,14 +103,19 @@ void update() {
 
   fingers = leap.getFingers();
   if (leap.hasFingers()) {
-    //for(Finger f : fingers) {
+    //as we are using the leap 90 deg rotated, we need to change coordinates
+    //but for reference we save the original Finger
+
     frontFinger = leap.getFrontFinger();
-    fingerPos = frontFinger.getPosition();
-    fingerPos.y = map(fingerPos.z, 80, 10, 0, height);
-    fingerPos.x += 450;
-    fingerPos.y += 100;
+    if (frontFinger.getTimeVisible() > MIN_FINGER_VISIBLE_TIME) {
+      originalFinger = leap.getFrontFinger();
+      fingerPos = frontFinger.getPosition();
+      fingerPos.y = map(fingerPos.z, 80, 10, 0, height);
+      fingerPos.x += 550;
+      fingerPos.y += tagHeight;
+    }
   }
-  //updating scanArea will also update photo taking
+  // updating scanArea will also update photo taking
   scanArea.update();
   if (scanArea.calibrated == false) return;
   scanButton.update();
@@ -110,33 +124,46 @@ void update() {
     scanArea.takePhoto();
   }
 
+  // if a photo is available in scan area, grab it
+  if (scanArea.lastPhoto != null) {
+    scanArea.lastPhoto.save("/Users/tom/Desktop/bild_" +  year() + "_" + month() + "_" + day() + "_" + hour() + "_" + minute() + "_" + second() + ".jpg");
+    imageList.add(lastPhoto);
+  }
+
   caption1.update();
   caption2.update();
   for (int i = 0; i < tags.size(); i++)
     tags.get(i).update();
 
-  TagButton t;
-  int draggedTagCount = draggedTags.size();
-  // arange the dragged tags around the mouse
-  for (int i = 0; i < draggedTagCount; i++) {
-    t = draggedTags.get(i);
-    //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
-    if (draggedTagCount < 3) {
-      t.boundingBox.setLocation((int) (fingerPos.x + (i * t.boundingBox.width)), (int) (fingerPos.y - t.boundingBox.height - 10));
-    } 
-    else {
-      // calculate positions (circle around the mouse)
-      float radians = radians((360/draggedTagCount) * (i+1));
-      float newX = fingerPos.x + (cos(radians) * (t.boundingBox.width + 10));
-      float newY = fingerPos.y + (sin(radians) * (t.boundingBox.height + 10));
-      t.boundingBox.setLocation((int) newX, (int) newY);
+
+  //if we have tags that are being dragged, position then around the mouse
+  if (draggedTags.isEmpty() == false) {
+    TagButton t;
+    int draggedTagCount = draggedTags.size();
+    for (int i = 0; i < draggedTagCount; i++) {
+      t = draggedTags.get(i);
+      //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
+      if (draggedTagCount < 3) {
+        t.boundingBox.setLocation(  tagWidth + (int)(fingerPos.x + (i * tagWidth)), (int) (fingerPos.y - t.boundingBox.height - 10));
+      } 
+      else {
+        // otherwise rotate tags around mouse
+        // calculate positions (circle around the mouse)
+        float radians = radians((360/draggedTagCount) * (i+1));
+        float newX = fingerPos.x + (cos(radians) * (t.boundingBox.width + 40));
+        float newY = fingerPos.y + (sin(radians) * (t.boundingBox.height + 40));
+        t.boundingBox.setLocation((int) newX, (int) newY);
+      }
     }
   }
 
   //arrange the added tags on the bottom
-  for (int i = 0; i < addedTags.size(); i++) {
-    t = addedTags.get(i);
-    t.boundingBox.setLocation( 25 + (i * t.boundingBox.width), t.boundingBox.height + 10);
+  if (addedTags.isEmpty() == false) {
+    TagButton t;
+    for (int i = 0; i < addedTags.size(); i++) {
+      t = addedTags.get(i);
+      t.boundingBox.setLocation( 25 + (i * t.boundingBox.width), t.boundingBox.height + 10);
+    }
   }
 }
 
@@ -146,26 +173,17 @@ void draw() {
   update();
   if (scanArea.calibrated == false) return;
 
-  if (leap.hasFingers())
-    ellipse(fingerPos.x, fingerPos.y, 20, 20);
+  // draw the cursor/circle
+  if (leap.hasFingers() && frontFinger.getTimeVisible() > MIN_FINGER_VISIBLE_TIME) {
+    float diameterPointer = map(originalFinger.getPosition().y, -height/2, height/2, 6, 30);
+    ellipse(fingerPos.x, fingerPos.y, diameterPointer, diameterPointer);
+  }
 
   for (TagButton t : tags)
     t.display();
 
   caption1.display();
   caption2.display();
-
   scanButton.display();
   scanArea.display();
-
-  //if a photo is available in scan area, grab it
-  if (scanArea.lastPhoto != null) {
-    scanArea.lastPhoto.save("/Users/tom/Desktop/bild_" +  year() + "_" + month() + "_" + day() + "_" + hour() + "_" + minute() + "_" + second() + ".jpg");
-    imageList.add(lastPhoto);
-  }
-
-  if (lastPhoto != null) {
-    rectMode(CORNER);
-    image(imageList.get(imageList.size() - 1), 0, 0);
-  }
 }

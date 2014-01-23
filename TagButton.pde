@@ -5,8 +5,6 @@ class TagButton extends GuiElement {
   color c = color(50, 180, 220);
   Rectangle originalPosition;
 
-
-
   TagButton(int x_, int y_, Integer width_, Integer height_, String text_, PFont font_) {
     super(x_, y_, width_, height_);
     originalPosition = new Rectangle(this.boundingBox);
@@ -22,7 +20,7 @@ class TagButton extends GuiElement {
       font = font_;
     } 
     else {
-      font = createFont("RobotoCondensed-Bold", 18);
+      font = createFont("RobotoCondensed-Bold", 16);
     }
   }
 
@@ -80,14 +78,14 @@ class TagButton extends GuiElement {
 
 
   void display() {
-    println(this.opacity);
+    rectMode(CORNER);
     textFont(font);
     float x_, y_;
     x_ = this.boundingBox.x;
     y_ = this.boundingBox.y;
 
     // drawing the cyan rectangle
-    rectMode(CORNER);
+    
     if (fingerOverTime > 0) {
       fill(c, map(hoverAnimationProgress, 0.0, 1.0, 0, 255));
       noStroke();
