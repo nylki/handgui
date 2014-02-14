@@ -83,7 +83,6 @@ void setup() {
     tags.add(new TagButton(horizontalRightPosition, verticalPosition, tagWidth*2, tagHeight, keywords[i], null));
   }
 
-
   leap = new LeapMotion(this).withGestures();
   String[] cameras = Capture.list();
 
@@ -112,8 +111,10 @@ void update() {
     if (frontFinger.getTimeVisible() > MIN_FINGER_VISIBLE_TIME) {
       originalFinger = leap.getFrontFinger();
       fingerPos = frontFinger.getPosition();
+
       fingerPos.y = map(fingerPos.z, 80, 10, 0, height) + 150;
       fingerPos.x += 550;
+
     }
   }
   // updating scanArea will also update photo taking
@@ -127,6 +128,7 @@ void update() {
 
   // if a photo is available in scan area, grab it
   if (scanArea.lastPhoto != null) {
+
 
     String pathString = sketchPath("bilder") +  year() + "_" + month() + "_" + day() + "_" + hour() + "_" + minute() + "_" + second() + ".jpg";
     scanArea.lastPhoto.save(pathString);
@@ -194,6 +196,7 @@ void update() {
           t.boundingBox.setLocation((int) newX, (int) newY);
         }
       }
+
   }
 
   caption1.update();
@@ -223,8 +226,6 @@ void update() {
       }
     }
   }
-
-
     //arrange the added tags on the bottom
     if (addedTags.isEmpty() == false) {
       TagButton t;
@@ -233,6 +234,7 @@ void update() {
         t.boundingBox.setLocation( 25 + (i * t.boundingBox.width), t.boundingBox.height + 10);
       }
     }
+
 }
 
   
@@ -245,9 +247,7 @@ void update() {
     if (leap.hasFingers() && frontFinger.getTimeVisible() > MIN_FINGER_VISIBLE_TIME) {
       float diameterPointer = map(originalFinger.getPosition().y, -height/2, height/2, 6, 30);
       ellipse(fingerPos.x, fingerPos.y, diameterPointer, diameterPointer);
-
       }
-
 
     for (TagButton t : tags)
       t.display();
@@ -266,4 +266,5 @@ void update() {
       t.boundingBox.setLocation( 25 + (i * t.boundingBox.width), t.boundingBox.height + 10);
     }
   }
+
 }

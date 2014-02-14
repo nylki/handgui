@@ -5,11 +5,6 @@ class TagButton extends GuiElement {
   color c = color(50, 180, 220);
   Rectangle originalPosition;
 
-
-
-  // TODO: create PGraphics once (or PShape), loading this into the buffer and drawing.
-  // now its always creating a text, rect etc. which simply should be saved, otherwise animated
-
   TagButton(int x_, int y_, Integer width_, Integer height_, String text_, PFont font_) {
     super(x_, y_, width_, height_);
     originalPosition = new Rectangle(this.boundingBox);
