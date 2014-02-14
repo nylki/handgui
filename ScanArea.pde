@@ -1,11 +1,11 @@
 class ScanArea extends GuiElement {
-  int brightness = 0;
+  float brightness = 0.0;
   int photoStarted = 0;
   boolean calibrated;
   //Rectangle calibratedDimensions = null;
   PImage lastPhoto, calibrationPhoto;
-  ArrayList<Contour> lastContours;
-  int timeSinceLaunch = 0;
+  ArrayList<Contour> lastContours = new ArrayList<Contour>();
+  int timeSinceLaunch = 0;                
   int opencvThreshold = 230;
   //canonicalPoints will be determined by calling calibrate()
   Point[] canonicalPoints = new Point[4];
@@ -78,7 +78,7 @@ class ScanArea extends GuiElement {
       float biggestSize = 0.0;
       for (Contour contour : contours) {
         float curSize = (float) (contour.getBoundingBox().getHeight() * contour.getBoundingBox().getWidth());
-        if (curSize > biggestSize && curSize > (200*200)) {
+        if (curSize > biggestSize && curSize > (800*800)) {
           biggestSize = curSize;
           candidateContour = contour;
         }
@@ -128,7 +128,7 @@ class ScanArea extends GuiElement {
           // set the unwarpedPoints to the found polygon
           ArrayList<PVector> polygonPoints = polygonalApprox.getPoints();
 
-          refSize = new Rectangle(0, 0, cam.height, (int) ( ((float) this.boundingBox.height) *  ((float) ((float) cam.height) / ((float) this.boundingBox.width))));
+          refSize = new Rectangle(0, 0, cam.height, (int) (((float) boundingBox.height) *  ((float) cam.height) / ((float) boundingBox.width)));
 
 
           println("this.boundingBox = " + this.boundingBox.width + ", " + this.boundingBox.height);
@@ -172,11 +172,22 @@ class ScanArea extends GuiElement {
     if (photoStarted != 0) {
       //if 2 seconds are over, take the actual photo
       if(brightness > 80) println("brightness reached, taking actual photo");
-      if (cam.available() && brightness > 80) {
+      if (cam.available() && brightness > 120) {
         println("now taking photo");
         
         cam.read();
         lastPhoto = warpPerspective(cam, unwarpedPoints, canonicalPoints, refSize);
+        
+        // TODO: creating outlines of image here. also save it
+        
+        /*
+        opencv.loadImage(lastPhoto);
+        opencv.gray();
+        opencv.threshold(180);
+        opencv.erode();
+        lastContours = opencv.findContours();
+        */
+        
 
         brightness = 0;
         photoStarted = 0;
@@ -191,13 +202,10 @@ class ScanArea extends GuiElement {
       showCalibrationImage();
       calibrate();
     } 
-    else {
-    }
     
     super.update();
     checkTakingPhoto();
     
-
     //if you want to see the calibration image with the recognized box, uncomment the following lines:
     // show calibrated shape with red
     /*
@@ -215,7 +223,7 @@ class ScanArea extends GuiElement {
   void display() {  
     //showing white >>flash<< when photostarte
     if (photoStarted > 0) {
-      brightness = constrain(brightness+1, 0, 95);
+      brightness = constrain(brightness+0.7, 0, 130);
       fill(brightness);
       rectMode(CORNER);
       rect(0, 0, width, height);

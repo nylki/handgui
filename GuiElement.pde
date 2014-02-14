@@ -13,11 +13,9 @@ class GuiElement {
   int hoverAnimationDuration = TIMEUNTILACTION;
   float hoverAnimationProgress = 0.0; //0.0 to 1.0
   
-  
-  
-  
+
   /* we want to simulate a click by
-    1. was finger >2000ms over button
+    1. was finger > TIMEUNTILACTION over button
     2. if so: finger dissapears (touched down) -> was finger still in bounderies of
       the button before the touch down? if true, then button is pressed
   */
@@ -53,18 +51,13 @@ class GuiElement {
   }
   
   void updateDrag(){
-    if (fingerOverTime > TIMEUNTILACTION){
-      dragged = true;
-    } else{
-      dragged = false;
-    }
+    //dragged will be set to true if finger has been > TIMEUNTILACION above this gui element, otherwise false
+    dragged = (fingerOverTime > TIMEUNTILACTION);
   }
   
   
   void updateFingerState(){
     clicked = false;
-    //update position and status based on mouse activity
-
     if (leap.hasFingers() == false) {
       if(fingerOverTime > TIMEUNTILACTION){
         // interpretate this as a click:
@@ -78,25 +71,21 @@ class GuiElement {
       fingerOverTime = 0.0;
       fingerOverStarted = 0.0;
       
-    } else {
-      // if leap has fingers
-      boolean fingerIn = false;
+    } else if(leap.hasFingers() == true && frontFinger.getTimeVisible() > MIN_FINGER_VISIBLE_TIME) {
+      // if leap has fingers and finger has been around for atleast MIN_FINGER_VISIBLE_TIME
       
       // check if finger is inside this GUI Element/button
       // if it is, add the passed time to *fingerOverTime*, so we can see
       // how long the finger has been hovering over the button
       if (this.boundingBox.contains((int) fingerPos.x, (int) fingerPos.y)) {
-        fingerIn = true;
         if (fingerOverTime == 0.0) {
           fingerOverTime = 1.0;
           fingerOverStarted = millis();
-        } 
-        else {
+        } else {
           fingerOverTime =+ millis() - fingerOverStarted;
         }
-      }
-      if (fingerIn == false) {
-        //println("reset finger overtime");
+      } else {
+        // no finger on the gui element
         fingerOverTime = 0.0;
       }
     }    
@@ -114,10 +103,8 @@ class GuiElement {
       if(draggable) updateDrag();
       updateFingerState();
       if(fingerOverTime > 0){
-        hoverAnimationProgress = fingerOverTime / hoverAnimationDuration;
-        
+        hoverAnimationProgress = fingerOverTime / hoverAnimationDuration;        
       }
-
   }
 
   void display() {
