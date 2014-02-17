@@ -14,4 +14,4 @@ This project is being worked on at the Interdisciplinary Laboratory of the Humbo
 
 
 * Disclaimer *
-This project is WIP. Which means, code might not work and might not be documented properly yet. Also part of the code will probably going to be rewritten or cleaned up and optimized in the future.
+This project is WIP. Which means, code might not work and might not be documented properly yet. Also part of the code is probably going to be rewritten or cleaned up and optimized in the future.
