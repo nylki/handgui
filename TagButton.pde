@@ -26,48 +26,26 @@ class TagButton extends GuiElement {
 
 
   void updateDrag() {
+    //change draggedTag to this / remove. if necessary
     boolean draggedBeforeUpdate = this.dragged;
     super.updateDrag();
-    if (this.dragged == true && draggedBeforeUpdate == false) {
-      //just started the drag
-      draggedTags.add(this);
-    } 
-    else if (this.dragged == false && draggedBeforeUpdate == true) {
-      //todo: this should do nothing
-      //draggedTags.remove(this);
+    //if(draggedTag != null && draggedTag != this) return;
+    if (this.dragged == true) 
+    {
+      println(this.text + " is dragged." );
+      draggedTag = this;
     }
+    
   }
 
   void update() {
     super.update();
 
     //we want action if we move a tag inside the scan area -> making it dissapear & adding the tag to the image
-    if (draggedTags.contains(this)) {
-      if (leap.hasFingers() == false) {
-        if (addedTags.contains(this) == false) {
-          this.opacity = 0.0;
-          this.boundingBox.setLocation(originalPosition.x, originalPosition.y);
-        }
-        draggedTags.remove(this);
-        // if this is an added tag, the finger is removed
-        //if (addedTags.contains(this)) addedTags.remove(this);
-      }
-
-      // if tag/finger is inside scan area -> either add it to the current photo, or make it dragging again to remove it
-      //TODO: implement previousFinder so we can check wether finger was in ther ebefore
-      if (scanArea.boundingBox.contains(fingerPos.x, fingerPos.y)) {
-        if (addedTags.contains(this) == false) {
-
-          println("adding " + this.text + " to the element");
-          this.opacity = 0;
-          addedTags.add(this);
-          draggedTags.remove(this);
-          globalElementDragged = false;
-          this.fingerOverTime = 0;
-        }
-      }
+    if (draggedTag == this) {
     } 
-    else if (draggedTags.contains(this) == false && addedTags.contains(this) == true && this.fingerOverTime > 750) {
+    else if (draggedTag != this && addedTags.contains(this) == true && this.fingerOverTime > 750) {
+      // hold finger to remove
       this.opacity = 0.0;
       this.opacityDownAnimation = true;
       this.boundingBox.setLocation(originalPosition.x, originalPosition.y);
@@ -109,4 +87,3 @@ class TagButton extends GuiElement {
     noTint();
   }
 }
-

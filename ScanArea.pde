@@ -78,7 +78,7 @@ class ScanArea extends GuiElement {
       float biggestSize = 0.0;
       for (Contour contour : contours) {
         float curSize = (float) (contour.getBoundingBox().getHeight() * contour.getBoundingBox().getWidth());
-        if (curSize > biggestSize && curSize > (800*800)) {
+        if (curSize > biggestSize && curSize > (500*500)) {
           biggestSize = curSize;
           candidateContour = contour;
         }
@@ -199,8 +199,8 @@ class ScanArea extends GuiElement {
 
     if (calibrated == false) {
       println("caibrated false");
-      showCalibrationImage();
       calibrate();
+      return;
     } 
     
     super.update();

@@ -16,10 +16,13 @@ import processing.video.*;
  ACHTUNG: DIESER TEST IST SO KALIBRIERT, DASS DIE LEAPMOTION IN DER MITTE UND UMGEDREHT
  DES TISCHES/DISPLAYS LIEGEN MUSS. Y WERTE WERDEN ANGEPASST. GESTEN AUS DEM FRAMEWORK SIND NICHT MÖGLICH
  */
+// TODO: AUFRÄUMEN: ersetze haltegeste mit pinch Geste: neu aufbauen: translation/verschieben des tags, direkt im Tag selber implementieren, bzw. hinzufügen: applyForce(), setLocation()
+// nur ein dragged objekt zulassen: weniger overhead: und vereinfachen!!
+//modifier/Action tags: ocr, outline, scan QR-code, (Glitch!)
 
+boolean debugEnabled = false;
 
-// TODO: Greifgeste mit Daumen + Zeigenfinger
-
+boolean Redraw = false;
 LeapMotion leap;
 Capture cam;
 OpenCV opencv;
@@ -28,16 +31,27 @@ GuiElement scanButton;
 GuiElement caption1, caption2;
 ScanArea scanArea;
 ArrayList<TagButton> tags = new ArrayList<TagButton>();
-ArrayList<TagButton> draggedTags = new ArrayList<TagButton>();
+TagButton draggedTag;
 ArrayList<TagButton> addedTags = new ArrayList<TagButton>();
 boolean globalElementDragged = false;
 PImage lastPhoto = null;
 
 
 //GLOBAL
+ArrayList<PVector> modifiedFingerPositions;
+PVector modifiedHandPosition = new PVector(0, 0);
+
+PVector previousHand = new PVector(0, 0);
+PVector thumb = new PVector(0, 0);
+PVector indexFinger = new PVector(0, 0);
+PVector centerThumbFinger = new PVector(0, 0);
+PVector directionThumbFinger = new PVector(0, 0);
+float distanceThumbToIndexFinger = 1000;
+PVector directionHandToPinchCenter = new PVector(0, 0);
+
+
 Finger frontFinger;
-Finger originalFinger;
-PVector fingerPos;
+PVector frontFingerPosition = new PVector(0, 0);
 float MIN_FINGER_VISIBLE_TIME = 0.2;
 boolean fingerInGUIElement = false; //track if finger was/is in guielement, to reduce load
 int tagHeight = 40;
@@ -46,6 +60,15 @@ int tagDistance = 10;
 
 
 ArrayList<PImage> imageList = new ArrayList<PImage>();
+
+class XCoordinateComparator implements Comparator<Finger> {
+  @Override
+    public int compare(Finger a, Finger b) {
+    float ax = a.getPosition().x;
+    float bx = b.getPosition().x;
+    return ax < bx ? -1 : ax == bx ? 0 : 1;
+  }
+}
 
 
 void setup() {
@@ -95,28 +118,24 @@ void setup() {
     for (int i = 0; i < cameras.length; i++) {
       println(i + " : " + cameras[i]);
     }
-    cam = new Capture(this, cameras[14]); //cam 13 is what we want
+    cam = new Capture(this, cameras[2]); //cam 13 is what we want
     cam.start();
   }
   opencv = new OpenCV(this, 1920, 1080);
+  fingers = new ArrayList<Finger>();
+  modifiedFingerPositions = new ArrayList<PVector>();
+
+  // we use a thread to update all the finger info etc
+  //thread("update");
 }
 
 void update() {
-  fingers = leap.getFingers();
-  if (leap.hasFingers()) {
-    //as we are using the leap 90 deg rotated, we need to change coordinates
-    //but for reference we save the original Finger
 
-    frontFinger = leap.getFrontFinger();
-    if (frontFinger.getTimeVisible() > MIN_FINGER_VISIBLE_TIME) {
-      originalFinger = leap.getFrontFinger();
-      fingerPos = frontFinger.getPosition();
+  //while (true) {
+  // delay 1/60 of a second so we update only a limited amount of times
+  delay(1000/60);
+  // update 30x/second
 
-      fingerPos.y = map(fingerPos.z, 80, 10, 0, height) + 150;
-      fingerPos.x += 550;
-
-    }
-  }
   // updating scanArea will also update photo taking
   scanArea.update();
   if (scanArea.calibrated == false) return;
@@ -128,17 +147,14 @@ void update() {
 
   // if a photo is available in scan area, grab it
   if (scanArea.lastPhoto != null) {
-
-
     String pathString = sketchPath("bilder") +  year() + "_" + month() + "_" + day() + "_" + hour() + "_" + minute() + "_" + second() + ".jpg";
     scanArea.lastPhoto.save(pathString);
 
     if (addedTags.size() > 0) {
-
       // adding keyword metadata to the document with the external tool exiv2
       String[] command = new String[3];
       command[0] = dataPath("writeMetadata.sh");
-      for (TagButton t : addedTags){
+      for (TagButton t : addedTags) {
         // adding actual keywords to the command
         command[1] = command[1] + t.text + " ";
       }
@@ -149,9 +165,6 @@ void update() {
 
         BufferedReader stdInput = new BufferedReader(new 
           InputStreamReader(p.getInputStream()));
-
-        BufferedReader stdError = new BufferedReader(new 
-          InputStreamReader(p.getErrorStream()));
 
         // read the output from the command
         String s;
@@ -171,100 +184,145 @@ void update() {
     }
   }
 
-    caption1.update();
-    caption2.update();
-    for (int i = 0; i < tags.size(); i++)
-      tags.get(i).update();
+  modifiedFingerPositions.clear();
+  modifiedHandPosition.mult(0);
+  frontFingerPosition.mult(0);
+  fingers.clear();
+  if (leap.hasHands()) {
+
+    //change coordinates of hand and fingers relating to the different usage of the leap motion (tablet mode / 90 degree rotated)
+    modifiedHandPosition = leap.getHands().get(0).getPosition();
+    float newZ = modifiedHandPosition.y;
+    modifiedHandPosition.y = map(modifiedHandPosition.z, 80, 10, 0, height) + 150;
+    modifiedHandPosition.x += 250;
+    modifiedHandPosition.z = newZ;
 
 
-    //if we have tags that are being dragged, position then around the mouse
-    if (draggedTags.isEmpty() == false) {
-      TagButton t;
-      int draggedTagCount = draggedTags.size();
-      for (int i = 0; i < draggedTagCount; i++) {
-        t = draggedTags.get(i);
-        //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
-        if (draggedTagCount < 3) {
-          t.boundingBox.setLocation(  tagWidth + (int)(fingerPos.x + (i * tagWidth)), (int) (fingerPos.y - t.boundingBox.height - 10));
-        } 
-        else {
-          // otherwise rotate tags around mouse
-          // calculate positions (circle around the mouse)
-          float radians = radians((360/draggedTagCount) * (i+1));
-          float newX = fingerPos.x + (cos(radians) * (t.boundingBox.width + 40));
-          float newY = fingerPos.y + (sin(radians) * (t.boundingBox.height + 40));
-          t.boundingBox.setLocation((int) newX, (int) newY);
-        }
+    if (leap.hasFingers()) {
+      fingers = leap.getFingers();
+      frontFinger = leap.getFrontFinger();
+      frontFingerPosition = frontFinger.getPosition();
+      newZ = frontFingerPosition.y;
+
+      frontFingerPosition.y = map(frontFingerPosition.z, 80, 10, 0, height) + 150;
+      frontFingerPosition.x += 250;
+      frontFingerPosition.z = newZ;
+
+
+      Collections.sort(fingers, new XCoordinateComparator());
+
+      for (Finger f : fingers) {
+        PVector modifiedPosition = f.getPosition();
+        newZ = modifiedPosition.y;
+        modifiedPosition.y = map(modifiedPosition.z, 80, 10, 0, height) + 150;
+        modifiedPosition.x += 250;
+        modifiedPosition.z = newZ;
+        modifiedFingerPositions.add(modifiedPosition);
       }
 
+
+      if (modifiedFingerPositions.size() >= 2) {
+        thumb = modifiedFingerPositions.get(0);
+        indexFinger = modifiedFingerPositions.get(1);
+        directionThumbFinger = PVector.sub(indexFinger, thumb);
+        centerThumbFinger = PVector.div(directionThumbFinger, 2);
+        centerThumbFinger.add(thumb);
+
+        distanceThumbToIndexFinger = directionThumbFinger.mag();
+        directionHandToPinchCenter = PVector.sub(centerThumbFinger, modifiedHandPosition);
+      } 
+      else if (modifiedFingerPositions.size() == 1 && draggedTag == null) {
+        //might not be necessary
+        //println("set distanceThumbToIndexFinger high, to prevent accidentally dragging tags");
+        // if nothing is being dragged and only a single finger is visible, set the distance of thumb to index finger to something high
+        // to prevent accidentally dragging with a single finger
+       // distanceThumbToIndexFinger = width;
+      }
+    }
   }
+
+
+  //println("hand to centerThumbFinger is: " + directionHandToPinchCenter.x + ", " + directionHandToPinchCenter.y);
 
   caption1.update();
   caption2.update();
-  for (int i = 0; i < tags.size(); i++)
-    tags.get(i).update();
+  draggedTag = null;
+  for (int i = 0; i < tags.size(); i++) tags.get(i).update();
 
-
-  //if we have tags that are being dragged, position then around the mouse
-  if (draggedTags.isEmpty() == false) {
-    TagButton t;
-    int draggedTagCount = draggedTags.size();
-    for (int i = 0; i < draggedTagCount; i++) {
-      t = draggedTags.get(i);
-      //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
-      if (draggedTagCount < 3) {
-        t.boundingBox.setLocation(  tagWidth + (int)(fingerPos.x + (i * tagWidth)), (int) (fingerPos.y - t.boundingBox.height - 10));
-      } 
-      else {
-        // otherwise rotate tags around mouse
-        // calculate positions (circle around the mouse)
-        float radians = radians((360/draggedTagCount) * (i+1));
-        float newX = fingerPos.x + (cos(radians) * (t.boundingBox.width + 40));
-        float newY = fingerPos.y + (sin(radians) * (t.boundingBox.height + 40));
-        t.boundingBox.setLocation((int) newX, (int) newY);
-
-      }
-    }
+  // change the location of a dragged tag according to the estimated pinch location
+  if (draggedTag != null) {
+    println("dragged tag : " + draggedTag.text);
+    //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
+    PVector estimatedPinchLocation = PVector.add(modifiedHandPosition, directionHandToPinchCenter);        
+    draggedTag.boundingBox.setLocation((int) (estimatedPinchLocation.x - draggedTag.boundingBox.width/2), 
+    (int) (estimatedPinchLocation.y - draggedTag.boundingBox.height/2));
   }
-    //arrange the added tags on the bottom
-    if (addedTags.isEmpty() == false) {
-      TagButton t;
-      for (int i = 0; i < addedTags.size(); i++) {
-        t = addedTags.get(i);
-        t.boundingBox.setLocation( 25 + (i * t.boundingBox.width), t.boundingBox.height + 10);
-      }
-    }
 
-}
-
-  
-  void draw() {
-    background(0);
-    update();
-    if (scanArea.calibrated == false) return;
-
-    // draw the cursor/circle
-    if (leap.hasFingers() && frontFinger.getTimeVisible() > MIN_FINGER_VISIBLE_TIME) {
-      float diameterPointer = map(originalFinger.getPosition().y, -height/2, height/2, 6, 30);
-      ellipse(fingerPos.x, fingerPos.y, diameterPointer, diameterPointer);
-      }
-
-    for (TagButton t : tags)
-      t.display();
-
-    caption1.display();
-    caption2.display();
-    scanButton.display();
-    scanArea.display();
-  
-
-  //arrange the added tags on the bottom
+  //arrange the added tags on the top
   if (addedTags.isEmpty() == false) {
     TagButton t;
     for (int i = 0; i < addedTags.size(); i++) {
       t = addedTags.get(i);
-      t.boundingBox.setLocation( 25 + (i * t.boundingBox.width), t.boundingBox.height + 10);
+      t.boundingBox.setLocation((i * t.boundingBox.width) + 5, t.boundingBox.height + 10);
     }
   }
-
+  //}
 }
+
+
+void draw() {
+  println("distanceThumbToIndexFinger: " + distanceThumbToIndexFinger);
+  update();
+  background(0);
+
+  if (scanArea.calibrated == false) {
+    scanArea.showCalibrationImage();
+    return;
+  }
+
+  // display all gui elements: buttons, tags, etc.
+  for (TagButton t : tags) t.display();
+  caption1.display();
+  caption2.display();
+  scanButton.display();
+  scanArea.display();
+
+// debug: show pinch coordinates
+if(debugEnabled == true){
+  color fillColor = color(0);
+  if (modifiedFingerPositions.size() > 1) {
+    fill(0, 255, 0);
+    ellipse(centerThumbFinger.x, centerThumbFinger.y, 10, 10);
+    stroke(0, 128, 128);
+    pushMatrix();
+    translate(thumb.x, thumb.y);
+    line(0, 0, directionThumbFinger.x, directionThumbFinger.y);
+    popMatrix();
+  }
+  if (leap.hasHands()) {
+    fill(255, 0, 0);
+    ellipse(modifiedHandPosition.x, modifiedHandPosition.y, 50, 50);
+    pushMatrix();
+    translate(modifiedHandPosition.x, modifiedHandPosition.y);
+    line(0, 0, directionHandToPinchCenter.x, directionHandToPinchCenter.y);
+    PVector actualPositionBothFingers = PVector.add(modifiedHandPosition, directionHandToPinchCenter);
+    text((int) actualPositionBothFingers.x + ", " + (int) actualPositionBothFingers.y, directionHandToPinchCenter.x, directionHandToPinchCenter.y);
+    popMatrix();
+  }
+}
+ ///////////////////
+
+
+    // draw the cursors/circles where fingers are
+    if (modifiedFingerPositions.size() > 0) {
+      for (PVector position : modifiedFingerPositions) {
+        float diameterPointer = map(position.z, -height/2, height/2, 6, 30);
+        ellipse(position.x, position.y, diameterPointer, diameterPointer);
+      }
+    }
+  }
+  
+  
+  void keyPressed(){
+   if(key == 'd') debugEnabled = !debugEnabled;
+  }
