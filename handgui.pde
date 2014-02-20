@@ -132,9 +132,6 @@ void setup() {
 void update() {
 
   //while (true) {
-  // delay 1/60 of a second so we update only a limited amount of times
-  delay(1000/60);
-  // update 30x/second
 
   // updating scanArea will also update photo taking
   scanArea.update();
