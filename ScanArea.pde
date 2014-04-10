@@ -13,17 +13,19 @@ class ScanArea extends GuiElement {
   PImage distortedImage;
 
   Rectangle refSize;
-
+  Ani photoTakingAnimation;
 
 
   ScanArea(int x_, int y_, PShape img, PShape hoverImg, Integer width_, Integer height_) {
     super(x_, y_, img, hoverImg, width_, height_);  
     this.calibrated = false;
+    photoTakingAnimation = new Ani(this, 2.0, "brightness", 180, Ani.EXPO_IN_OUT, "onEnd:photoFinished");
   }
 
   ScanArea(int x_, int y_, PImage img, PImage hoverImg, Integer width_, Integer height_) {
     super(x_, y_, img, hoverImg, width_, height_); 
     this.calibrated = false;
+    photoTakingAnimation = new Ani(this, 2.0, "brightness", 180, Ani.EXPO_IN_OUT, "onEnd:photoFinished");
   }
 
 
@@ -57,6 +59,7 @@ class ScanArea extends GuiElement {
   }
 
   void calibrate() {
+    
     if (timeSinceLaunch == 0) timeSinceLaunch = millis();
     if (cam.available() == true && (millis() - timeSinceLaunch > 1000) /* waiting a second before calibrating */) {
       println("now taking calibration photo");
@@ -159,6 +162,7 @@ class ScanArea extends GuiElement {
 
   void takePhoto() {
     photoStarted = millis();
+    photoTakingAnimation.start();
     // the next time scanArea is updated and checkTakingPhoto() is called
     // it will do the steps to take a photo because photoStarted != 0
     // but the time when the photo process started.
@@ -166,88 +170,70 @@ class ScanArea extends GuiElement {
     // and the actual photo taking and geometrical transformations
   }
 
-  void checkTakingPhoto() {
-    
-    lastPhoto = null;
-    if (photoStarted != 0) {
-      //if 2 seconds are over, take the actual photo
-      if(brightness > 80) println("brightness reached, taking actual photo");
-      if (cam.available() && brightness > 120) {
-        println("now taking photo");
-        
-        cam.read();
-        lastPhoto = warpPerspective(cam, unwarpedPoints, canonicalPoints, refSize);
-        
-        // TODO: creating outlines of image here. also save it
-        
-        /*
-        opencv.loadImage(lastPhoto);
-        opencv.gray();
-        opencv.threshold(180);
-        opencv.erode();
-        lastContours = opencv.findContours();
-        */
-        
+  void photoFinished(Ani _animation) {
+    while (cam.available () == false) {
+      delay(100);
+    };
+    println("now taking photo");
+    cam.read();
+    lastPhoto = warpPerspective(cam, unwarpedPoints, canonicalPoints, refSize);
+    brightness = 0;
+    photoStarted = 0;
+  
+}
 
-        brightness = 0;
-        photoStarted = 0;
-      }
-    }
-  }
 
-  void update() {
+void update() {
 
-    if (calibrated == false) {
-      println("caibrated false");
-      calibrate();
-      return;
-    } 
-    
-    super.update();
-    checkTakingPhoto();
-    
-    //if you want to see the calibration image with the recognized box, uncomment the following lines:
-    // show calibrated shape with red
-    /*
+  if (calibrated == false) {
+    println("caibrated false");
+    calibrate();
+    return;
+  } 
+
+  super.update();
+
+  //if you want to see the calibration image with the recognized box, uncomment the following lines:
+  // show calibrated shape with red
+  /*
      fill(255,0,0);
-     strokeWeight(3);
-     stroke(128,128,128);
-     beginShape();
-     
-     image(calibrationPhoto,0,0);
-     vertex((float) unwarpedPoints[0].x,(float) unwarpedPoints[0].y); vertex((float) unwarpedPoints[1].x,(float) unwarpedPoints[1].y); 
-     vertex((float) unwarpedPoints[2].x, (float) unwarpedPoints[2].y); vertex((float) unwarpedPoints[3].x, (float) unwarpedPoints[3].y); 
-     endShape(CLOSE);*/
+   strokeWeight(3);
+   stroke(128,128,128);
+   beginShape();
+   
+   image(calibrationPhoto,0,0);
+   vertex((float) unwarpedPoints[0].x,(float) unwarpedPoints[0].y); vertex((float) unwarpedPoints[1].x,(float) unwarpedPoints[1].y); 
+   vertex((float) unwarpedPoints[2].x, (float) unwarpedPoints[2].y); vertex((float) unwarpedPoints[3].x, (float) unwarpedPoints[3].y); 
+   endShape(CLOSE);*/
+}
+
+void display() {  
+  //showing white >>flash<< when photostarte
+  if (photoStarted > 0) {
+    fill(brightness);
+    rectMode(CORNER);
+    rect(0, 0, width, height);
+    return;
   }
 
-  void display() {  
-    //showing white >>flash<< when photostarte
-    if (photoStarted > 0) {
-      brightness = constrain(brightness+0.7, 0, 130);
-      fill(brightness);
-      rectMode(CORNER);
-      rect(0, 0, width, height);
-      return;
-    }
+  if (pixelImage != null) {
+    fill(0);
+    rect(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
 
-    if (pixelImage != null) {
-      fill(0);
-      rect(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
-
-      if (fingerOverTime > 100.0) {
-        image(pixelHoverImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
-      } 
-      else {
-        image(pixelImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
-      }
-    }
-    else if (vectorImage != null) {
-      if (fingerOverTime > 100.0) {
-        shape(vectorHoverImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
-      } 
-      else {
-        shape(vectorImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
-      }
+    if (fingerOverTime > 100.0) {
+      image(pixelHoverImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
     } 
+    else {
+      image(pixelImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+    }
   }
+  else if (vectorImage != null) {
+    if (fingerOverTime > 100.0) {
+      shape(vectorHoverImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+    } 
+    else {
+      shape(vectorImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+    }
+  }
+}
 }

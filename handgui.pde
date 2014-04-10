@@ -1,3 +1,6 @@
+import de.looksgood.ani.*;
+import de.looksgood.ani.easing.*;
+
 import java.io.*;
 import gab.opencv.*;
 import org.opencv.imgproc.Imgproc;
@@ -32,9 +35,16 @@ GuiElement caption1, caption2;
 ScanArea scanArea;
 ArrayList<TagButton> tags = new ArrayList<TagButton>();
 TagButton draggedTag;
+TagButton selectedTag = null;
+ArrayList<TagButton> waitingCategoryTags = new ArrayList<TagButton>();
+ArrayList<TagButton> waitingKeywordTags = new ArrayList<TagButton>();
 ArrayList<TagButton> addedTags = new ArrayList<TagButton>();
+// stack of lists of tags. each list represents a visible set, that can be swiped with the finger
+Stack<ArrayList<TagButton>> visibleTags  = new Stack<ArrayList<TagButton>>();
 boolean globalElementDragged = false;
 PImage lastPhoto = null;
+Ani draggedLocationAni = null;
+
 
 
 //GLOBAL
@@ -70,42 +80,21 @@ class XCoordinateComparator implements Comparator<Finger> {
   }
 }
 
+/*
+IDEEN:
+tags werden gesqueezed beim greifen.
+
+
+*/
+
 
 void setup() {
   size(displayWidth, displayHeight, P2D);
   noSmooth();
   background(0);
   colorMode(RGB, 255, 255, 255);
-  PImage scanButtonImage = loadImage("capture_2.png" );
-  PImage scanButtonImage_hover = loadImage("capture_1.png" );
-
-  PShape scanAreaImage = loadShape("frame-03.svg");
-  scanButton = new GuiElement((int) (width - scanButtonImage.width/3) -200, (int) (height-scanButtonImage.height/3) -100, scanButtonImage, scanButtonImage_hover, (int) scanButtonImage.width/2, (int) scanButtonImage.height/2);
-
-  scanArea = new ScanArea(0, 0, scanAreaImage, scanAreaImage, (int) scanAreaImage.width * 9/10, (int) scanAreaImage.height * 9/10);
-
-  PImage caption1_image = loadImage("keyword.png");
-  PImage caption2_image = loadImage("category.png");
-  caption1 = new GuiElement(width - 400, 10, caption1_image, caption1_image, caption1_image.width/2, caption1_image.height/2);
-  caption2 = new GuiElement( width - 400, 250, caption2_image, caption2_image, caption2_image.width/2, caption2_image.height/2);
-
-  String categories[] = loadStrings("categories.txt");
-  for (int i = 0 ; i < categories.length; i++) {
-    // spliting columns: 5 tags each column
-    int horizontalRightPosition = width - 300 - (tagWidth + tagDistance) * floor(i/4);
-    int verticalPosition = tagHeight + (i % 4) * tagHeight + (i % 4) * tagDistance;
-    tags.add(new TagButton(horizontalRightPosition, verticalPosition, tagWidth, tagHeight, categories[i], null));
-  }
-
-
-  String keywords[] = loadStrings("keywords.txt");
-  for (int i = 0 ; i < keywords.length; i++) {
-    // spliting columns: 5 tags each column
-    int horizontalRightPosition = width - 250 - (tagWidth*2 + tagDistance) * floor(i/3);
-    int verticalPosition = 280 + (i % 3) * tagHeight + (i % 3) * tagDistance;
-    tags.add(new TagButton(horizontalRightPosition, verticalPosition, tagWidth*2, tagHeight, keywords[i], null));
-  }
-
+  Ani.init(this);
+  
   leap = new LeapMotion(this).withGestures();
   String[] cameras = Capture.list();
 
@@ -124,9 +113,44 @@ void setup() {
   opencv = new OpenCV(this, 1920, 1080);
   fingers = new ArrayList<Finger>();
   modifiedFingerPositions = new ArrayList<PVector>();
+  
+  
+  PImage scanButtonImage = loadImage("capture_2.png" );
+  PImage scanButtonImage_hover = loadImage("capture_1.png" );
 
-  // we use a thread to update all the finger info etc
-  //thread("update");
+  PShape scanAreaImage = loadShape("frame-03.svg");
+  scanButton = new GuiElement((int) (width - scanButtonImage.width/3) -200, (int) (height-scanButtonImage.height/3) -100, scanButtonImage, scanButtonImage_hover, (int) scanButtonImage.width/2, (int) scanButtonImage.height/2);
+
+  scanArea = new ScanArea(0, 0, scanAreaImage, scanAreaImage, (int) scanAreaImage.width * 9/10, (int) scanAreaImage.height * 9/10);
+
+  PImage caption1_image = loadImage("keyword.png");
+  PImage caption2_image = loadImage("category.png");
+  caption1 = new GuiElement(width - 400, 10, caption1_image, caption1_image, caption1_image.width/2, caption1_image.height/2);
+  caption2 = new GuiElement( width - 400, 250, caption2_image, caption2_image, caption2_image.width/2, caption2_image.height/2);
+
+  String categories[] = loadStrings("categories.txt");
+  for (int i = 0 ; i < categories.length; i++) {
+    // spliting columns: 5 tags each column
+    int horizontalRightPosition = width - 300 - (tagWidth + tagDistance) * floor(i/4);
+    int verticalPosition = tagHeight + (i % 4) * tagHeight + (i % 4) * tagDistance;
+    TagButton t = new TagButton(horizontalRightPosition, verticalPosition, tagWidth, tagHeight, categories[i], null);
+    tags.add(t);
+    waitingCategoryTags.add(t);
+  }
+
+
+  String keywords[] = loadStrings("keywords.txt");
+  for (int i = 0 ; i < keywords.length; i++) {
+    // spliting columns: 5 tags each column
+    int horizontalRightPosition = width - 250 - (tagWidth*2 + tagDistance) * floor(i/3);
+    int verticalPosition = 280 + (i % 3) * tagHeight + (i % 3) * tagDistance;
+    TagButton t = new TagButton(horizontalRightPosition, verticalPosition, tagWidth*2, tagHeight, keywords[i], null);
+    tags.add(t);
+    waitingKeywordTags.add(t);
+  }
+
+
+
 }
 
 void update() {
@@ -151,9 +175,10 @@ void update() {
       // adding keyword metadata to the document with the external tool exiv2
       String[] command = new String[3];
       command[0] = dataPath("writeMetadata.sh");
+      command[1] = "";
       for (TagButton t : addedTags) {
         // adding actual keywords to the command
-        command[1] = command[1] + t.text + " ";
+        command[1] = command[1] + " " + t.text;
       }
       command[2] = pathString;
 
@@ -178,6 +203,7 @@ void update() {
 
       // open the scanned image with the users default image viewer
       open(pathString);
+      scanArea.lastPhoto = null;
     }
   }
 
@@ -244,9 +270,11 @@ void update() {
   caption1.update();
   caption2.update();
   draggedTag = null;
+
   for (int i = 0; i < tags.size(); i++) tags.get(i).update();
 
   // change the location of a dragged tag according to the estimated pinch location
+  // maybe put this into the tag itself?
   if (draggedTag != null) {
     println("dragged tag : " + draggedTag.text);
     //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
@@ -258,17 +286,27 @@ void update() {
   //arrange the added tags on the top
   if (addedTags.isEmpty() == false) {
     TagButton t;
+    Point newLocation = new Point(scanArea.boundingBox.x + 20, scanArea.boundingBox.y + 20);
+    
     for (int i = 0; i < addedTags.size(); i++) {
       t = addedTags.get(i);
-      t.boundingBox.setLocation((i * t.boundingBox.width) + 5, t.boundingBox.height + 10);
+      if(t != draggedTag){
+        
+        //animate to new position if tag is not already there
+        if(t.boundingBox.getLocation().equals(newLocation) == false){
+          t.moveTo((int) newLocation.x, (int) newLocation.y, 0.5);
+        }
+        // increase x location of following tag
+        newLocation.x += t.boundingBox.width + 5;
+        
+      	//t.boundingBox.setLocation((i * t.boundingBox.width) + 5, t.boundingBox.height + 10);
+        }
     }
   }
-  //}
 }
 
 
 void draw() {
-  println("distanceThumbToIndexFinger: " + distanceThumbToIndexFinger);
   update();
   background(0);
 
@@ -286,7 +324,6 @@ void draw() {
 
 // debug: show pinch coordinates
 if(debugEnabled == true){
-  color fillColor = color(0);
   if (modifiedFingerPositions.size() > 1) {
     fill(0, 255, 0);
     ellipse(centerThumbFinger.x, centerThumbFinger.y, 10, 10);
@@ -312,6 +349,7 @@ if(debugEnabled == true){
 
     // draw the cursors/circles where fingers are
     if (modifiedFingerPositions.size() > 0) {
+      fill(50, 180, 220,128);
       for (PVector position : modifiedFingerPositions) {
         float diameterPointer = map(position.z, -height/2, height/2, 6, 30);
         ellipse(position.x, position.y, diameterPointer, diameterPointer);
@@ -322,4 +360,18 @@ if(debugEnabled == true){
   
   void keyPressed(){
    if(key == 'd') debugEnabled = !debugEnabled;
+   
+   // toggle calibration cheat, to say it calibration is succesful, when it actually is not. for testing purposes.
+   if(key == 'c'){
+     scanArea.calibrated = true;
+     Rectangle refSize = new Rectangle(0, 0, cam.height, (int) (((float) scanArea.boundingBox.height) *  ((float) cam.height) / ((float) scanArea.boundingBox.width)));
+     scanArea.canonicalPoints[0] = new Point(refSize.width, 0);
+     scanArea.canonicalPoints[1] = new Point(0, 0);
+     scanArea.canonicalPoints[2] = new Point(0, refSize.height);
+     scanArea.canonicalPoints[3] = new Point(refSize.width, refSize.height);
+     scanArea.unwarpedPoints[0] = scanArea.canonicalPoints[0];
+     scanArea.unwarpedPoints[1] = scanArea.canonicalPoints[1];
+     scanArea.unwarpedPoints[2] = scanArea.canonicalPoints[2];
+     scanArea.unwarpedPoints[3] = scanArea.canonicalPoints[3];     
+   }
   }

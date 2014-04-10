@@ -1,13 +1,27 @@
 class TagButton extends GuiElement {
+  int tagClass;  // either KEYWORD or CATEGORY
   String text;
   PFont font;
   // we might want to change the color to match the wanted color
-  color c = color(50, 180, 220);
+  color rectStrokeColor = color(50, 180, 220);
+  color rectFillColor = color(0);
+  color textColor = color(50, 180, 220);
   Rectangle originalPosition;
+  boolean draggedBeforeUpdate;
+  float scaleFactor = 1.0;
+  Ani hoverAni_scale = new Ani(this, 0, "scaleFactor", 1.0);
+  Ani hoverAni_translatex = new Ani(this, 0, "scaleFactor", 1.0);
+  Ani hoverAni_translatey = new Ani(this, 0, "scaleFactor", 1.0);
+  boolean selected = false;
+
+
 
   TagButton(int x_, int y_, Integer width_, Integer height_, String text_, PFont font_) {
     super(x_, y_, width_, height_);
-    originalPosition = new Rectangle(this.boundingBox);
+
+    originalPosition = new Rectangle();
+    originalPosition.x = this.boundingBox.x;
+    originalPosition.y = this.boundingBox.y;
     this.draggable = true;
     if (text_ != null) {
       text = text_.toUpperCase();
@@ -22,12 +36,14 @@ class TagButton extends GuiElement {
     else {
       font = createFont("RobotoCondensed-Bold", 16);
     }
+
+    // repeat yoyo style (go up and down)
   }
 
 
   void updateDrag() {
     //change draggedTag to this / remove. if necessary
-    boolean draggedBeforeUpdate = this.dragged;
+    draggedBeforeUpdate = this.dragged;
     super.updateDrag();
     //if(draggedTag != null && draggedTag != this) return;
     if (this.dragged == true) 
@@ -35,55 +51,91 @@ class TagButton extends GuiElement {
       println(this.text + " is dragged." );
       draggedTag = this;
     }
-    
   }
 
   void update() {
     super.update();
-
-    //we want action if we move a tag inside the scan area -> making it dissapear & adding the tag to the image
-    if (draggedTag == this) {
+    if (fingerOverTime > 0 && hoverAni_scale.isPlaying() == false && selectedTag == null) {
+      selectedTag = this;
+      originalPosition.x = this.boundingBox.x;
+      originalPosition.y = this.boundingBox.y;
+      originalPosition.width = this.boundingBox.width;
+      originalPosition.height = this.boundingBox.height;
+      hoverAni_scale = Ani.to(this.boundingBox, 0.2, "width", this.boundingBox.width * 2.2, Ani.BOUNCE_IN);
+      Ani.to(this.boundingBox, 0.2, "height", this.boundingBox.height * 2.2, Ani.BOUNCE_IN);
+      Ani.to(this.boundingBox, 0.2, "x", this.boundingBox.x - 40, Ani.BOUNCE_IN);
+      Ani.to(this.boundingBox, 0.2, "y", this.boundingBox.y - 40, Ani.BOUNCE_IN);
     } 
-    else if (draggedTag != this && addedTags.contains(this) == true && this.fingerOverTime > 750) {
+    else if (fingerOverTime == 0 && selectedTag == this) {
+      println("returning tagsize");
+      selectedTag = null;
+      
+      hoverAni_scale = Ani.to(this.boundingBox, 0.2, "x", originalPosition.x, Ani.BOUNCE_OUT);
+      Ani.to(this.boundingBox, 0.2, "y", originalPosition.y, Ani.BOUNCE_OUT);
+      Ani.to(this.boundingBox, 0.2, "width", originalPosition.width, Ani.BOUNCE_OUT);
+      Ani.to(this.boundingBox, 0.2, "height", originalPosition.height, Ani.BOUNCE_OUT);
+    }
+
+
+
+    if (draggedTag != this && addedTags.contains(this) == true && this.fingerOverTime > 750) {
       // hold finger to remove
+      /*
       this.opacity = 0.0;
-      this.opacityDownAnimation = true;
-      this.boundingBox.setLocation(originalPosition.x, originalPosition.y);
-      addedTags.remove(this);
+       this.opacityDownAnimation = true;
+       this.boundingBox.setLocation(originalPosition.x, originalPosition.y);
+       addedTags.remove(this);
+       	  */
+    }
+
+    // not dragging anymore, check if we are inside the scanArea
+
+    if (draggedBeforeUpdate == true && dragged == false) {
+      if (scanArea.boundingBox.contains(this.boundingBox.x, this.boundingBox.y)) {
+        addedTags.add(this);
+      } 
+      else {
+        addedTags.remove(this);
+        this.moveTo(originalPosition.x, originalPosition.y, 2.0);
+      }
     }
   }
 
   void display() {
     rectMode(CORNER);
     textFont(font);
-    float x_, y_;
-    x_ = this.boundingBox.x;
-    y_ = this.boundingBox.y;
-
+    
+    if(selectedTag == null){
+      rectStrokeColor = color(50, 180, 220);
+      rectFillColor = color(0);
+      textColor = color(50, 180, 220);
+    } else if(selectedTag == this || this.dragged == true){
+      rectStrokeColor = color(0);
+      rectFillColor = color(50, 180, 220);
+      textColor = color(0);
+    } else{
+      rectStrokeColor = color(50, 180, 220, 128);
+      rectFillColor = color(0, 128);
+      textColor = color(50, 180, 220, 128); 
+      
+    }
+    
     // drawing the cyan rectangle
-    if (fingerOverTime > 0) {
-      fill(c, map(hoverAnimationProgress, 0.0, 1.0, 0, 255));
-      noStroke();
-    } 
-    else {
-      noFill();
-      stroke(c, opacity);
-      strokeWeight(1);
-    }
-    rect(x_, y_, this.boundingBox.width, this.boundingBox.height);
+    fill(rectFillColor);
+    stroke(rectStrokeColor);
+    // calculate new size depending on scaleFactor (changed when hovering eg.)
+    float newWidth = boundingBox.width;
+    float newHeight = boundingBox.height;
+    float x_ = this.boundingBox.x;
+    float y_ = this.boundingBox.y;
+    rect(x_, y_, newWidth, newHeight);
+    noStroke();
 
-    // drawing the text
-    if (fingerOverTime > 0.0) {
-      fill(0, map(hoverAnimationProgress, 0.0, 1.0, 0, 255));
-    } 
-    else {
-      fill(c, opacity);
-    }
     rectMode(CENTER);
     textAlign(CENTER, CENTER);
+    fill(textColor);
     text(text, (float) this.boundingBox.getCenterX(), (float) this.boundingBox.getCenterY());
     //here custom graphics. not using a loaded image
-
     noTint();
   }
 }
