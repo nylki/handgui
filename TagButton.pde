@@ -1,4 +1,4 @@
-class TagButton extends GuiElement {
+class TagButton extends GuiElement implements Comparable<TagButton> {
   int tagClass;  // either KEYWORD or CATEGORY
   String text;
   PFont font;
@@ -36,8 +36,12 @@ class TagButton extends GuiElement {
     else {
       font = createFont("RobotoCondensed-Bold", 16);
     }
+  }
 
-    // repeat yoyo style (go up and down)
+  @Override
+    public int compareTo(TagButton other) {
+    int result = this.text.compareTo(other.text);
+    return result;
   }
 
 
@@ -69,7 +73,7 @@ class TagButton extends GuiElement {
     else if (fingerOverTime == 0 && selectedTag == this) {
       println("returning tagsize");
       selectedTag = null;
-      
+
       hoverAni_scale = Ani.to(this.boundingBox, 0.2, "x", originalPosition.x, Ani.BOUNCE_OUT);
       Ani.to(this.boundingBox, 0.2, "y", originalPosition.y, Ani.BOUNCE_OUT);
       Ani.to(this.boundingBox, 0.2, "width", originalPosition.width, Ani.BOUNCE_OUT);
@@ -104,22 +108,23 @@ class TagButton extends GuiElement {
   void display() {
     rectMode(CORNER);
     textFont(font);
-    
-    if(selectedTag == null){
+
+    if (selectedTag == null) {
       rectStrokeColor = color(50, 180, 220);
       rectFillColor = color(0);
       textColor = color(50, 180, 220);
-    } else if(selectedTag == this || this.dragged == true){
+    } 
+    else if (selectedTag == this || this.dragged == true) {
       rectStrokeColor = color(0);
       rectFillColor = color(50, 180, 220);
       textColor = color(0);
-    } else{
+    } 
+    else {
       rectStrokeColor = color(50, 180, 220, 128);
       rectFillColor = color(0, 128);
-      textColor = color(50, 180, 220, 128); 
-      
+      textColor = color(50, 180, 220, 128);
     }
-    
+
     // drawing the cyan rectangle
     fill(rectFillColor);
     stroke(rectStrokeColor);

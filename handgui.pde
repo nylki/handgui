@@ -36,14 +36,14 @@ ScanArea scanArea;
 ArrayList<TagButton> tags = new ArrayList<TagButton>();
 TagButton draggedTag;
 TagButton selectedTag = null;
-ArrayList<TagButton> waitingCategoryTags = new ArrayList<TagButton>();
-ArrayList<TagButton> waitingKeywordTags = new ArrayList<TagButton>();
+
 ArrayList<TagButton> addedTags = new ArrayList<TagButton>();
 // stack of lists of tags. each list represents a visible set, that can be swiped with the finger
 Stack<ArrayList<TagButton>> visibleTags  = new Stack<ArrayList<TagButton>>();
 boolean globalElementDragged = false;
 PImage lastPhoto = null;
 Ani draggedLocationAni = null;
+TagMasterCollection tagCollection;
 
 
 
@@ -79,14 +79,6 @@ class XCoordinateComparator implements Comparator<Finger> {
     return ax < bx ? -1 : ax == bx ? 0 : 1;
   }
 }
-
-/*
-IDEEN:
-tags werden gesqueezed beim greifen.
-
-
-*/
-
 
 void setup() {
   size(displayWidth, displayHeight, P2D);
@@ -124,33 +116,18 @@ void setup() {
   scanArea = new ScanArea(0, 0, scanAreaImage, scanAreaImage, (int) scanAreaImage.width * 9/10, (int) scanAreaImage.height * 9/10);
 
   PImage caption1_image = loadImage("keyword.png");
-  PImage caption2_image = loadImage("category.png");
   caption1 = new GuiElement(width - 400, 10, caption1_image, caption1_image, caption1_image.width/2, caption1_image.height/2);
-  caption2 = new GuiElement( width - 400, 250, caption2_image, caption2_image, caption2_image.width/2, caption2_image.height/2);
-
-  String categories[] = loadStrings("categories.txt");
-  for (int i = 0 ; i < categories.length; i++) {
+  
+  String tagStrings[] = loadStrings("tags.txt");
+  for (int i = 0 ; i < tagStrings.length; i++) {
     // spliting columns: 5 tags each column
     int horizontalRightPosition = width - 300 - (tagWidth + tagDistance) * floor(i/4);
     int verticalPosition = tagHeight + (i % 4) * tagHeight + (i % 4) * tagDistance;
-    TagButton t = new TagButton(horizontalRightPosition, verticalPosition, tagWidth, tagHeight, categories[i], null);
+    TagButton t = new TagButton(horizontalRightPosition, verticalPosition, tagWidth, tagHeight, tagStrings[i], null);
     tags.add(t);
-    waitingCategoryTags.add(t);
   }
-
-
-  String keywords[] = loadStrings("keywords.txt");
-  for (int i = 0 ; i < keywords.length; i++) {
-    // spliting columns: 5 tags each column
-    int horizontalRightPosition = width - 250 - (tagWidth*2 + tagDistance) * floor(i/3);
-    int verticalPosition = 280 + (i % 3) * tagHeight + (i % 3) * tagDistance;
-    TagButton t = new TagButton(horizontalRightPosition, verticalPosition, tagWidth*2, tagHeight, keywords[i], null);
-    tags.add(t);
-    waitingKeywordTags.add(t);
-  }
-
-
-
+  
+  tagCollection = new TagMasterCollection(tags, 12, new Rectangle(width - 300, tagHeight, 300, 500));
 }
 
 void update() {
