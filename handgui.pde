@@ -256,25 +256,25 @@ void update() {
     println("dragged tag : " + draggedTag.text);
     //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
     PVector estimatedPinchLocation = PVector.add(modifiedHandPosition, directionHandToPinchCenter);        
-    draggedTag.boundingBox.setLocation((int) (estimatedPinchLocation.x - draggedTag.boundingBox.width/2), 
-    (int) (estimatedPinchLocation.y - draggedTag.boundingBox.height/2));
+    draggedTag.dimension.setLocation((int) (estimatedPinchLocation.x - draggedTag.dimension.width/2), 
+    (int) (estimatedPinchLocation.y - draggedTag.dimension.height/2));
   }
 
   //arrange the added tags on the top
   if (addedTags.isEmpty() == false) {
     TagButton t;
-    Point newLocation = new Point(scanArea.boundingBox.x + 20, scanArea.boundingBox.y + 20);
+    Point newLocation = new Point(scanArea.dimension.x + 20, scanArea.dimension.y + 20);
     
     for (int i = 0; i < addedTags.size(); i++) {
       t = addedTags.get(i);
       if(t != draggedTag){
         
         //animate to new position if tag is not already there
-        if(t.boundingBox.getLocation().equals(newLocation) == false){
+        if(t.dimension.getLocation().equals(newLocation) == false){
           t.moveTo((int) newLocation.x, (int) newLocation.y, 0.5);
         }
         // increase x location of following tag
-        newLocation.x += t.boundingBox.width + 5;
+        newLocation.x += t.dimension.width + 5;
         
       	//t.boundingBox.setLocation((i * t.boundingBox.width) + 5, t.boundingBox.height + 10);
         }
@@ -341,7 +341,7 @@ if(debugEnabled == true){
    // toggle calibration cheat, to say it calibration is succesful, when it actually is not. for testing purposes.
    if(key == 'c'){
      scanArea.calibrated = true;
-     Rectangle refSize = new Rectangle(0, 0, cam.height, (int) (((float) scanArea.boundingBox.height) *  ((float) cam.height) / ((float) scanArea.boundingBox.width)));
+     Rectangle refSize = new Rectangle(0, 0, cam.height, (int) (((float) scanArea.dimension.height) *  ((float) cam.height) / ((float) scanArea.dimension.width)));
      scanArea.canonicalPoints[0] = new Point(refSize.width, 0);
      scanArea.canonicalPoints[1] = new Point(0, 0);
      scanArea.canonicalPoints[2] = new Point(0, refSize.height);

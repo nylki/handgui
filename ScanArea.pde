@@ -51,8 +51,8 @@ class ScanArea extends GuiElement {
 
   void showCalibrationImage() {
     //displaying 1 blue rectangles
-    float w = this.boundingBox.width;
-    float h = this.boundingBox.height;
+    float w = this.dimension.width;
+    float h = this.dimension.height;
     fill(0, 0, 255); 
     rect(0, 0, w, h); 
     println("showed calibration image");
@@ -131,10 +131,10 @@ class ScanArea extends GuiElement {
           // set the unwarpedPoints to the found polygon
           ArrayList<PVector> polygonPoints = polygonalApprox.getPoints();
 
-          refSize = new Rectangle(0, 0, cam.height, (int) (((float) boundingBox.height) *  ((float) cam.height) / ((float) boundingBox.width)));
+          refSize = new Rectangle(0, 0, cam.height, (int) (((float) dimension.height) *  ((float) cam.height) / ((float) dimension.width)));
 
 
-          println("this.boundingBox = " + this.boundingBox.width + ", " + this.boundingBox.height);
+          println("this.boundingBox = " + this.dimension.width + ", " + this.dimension.height);
           //println("refSize = " + cam.height + ", " + (int) ( ((float) this.boundingBox.height) *  ((float) ((float) cam.height) / ((float) this.boundingBox.width))));
           //refSize = eg (480, 800 * (480/960)) = (480,400)
 
@@ -218,21 +218,21 @@ void display() {
 
   if (pixelImage != null) {
     fill(0);
-    rect(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+    rect(dimension.x, dimension.y, dimension.width, dimension.height);
 
     if (fingerOverTime > 100.0) {
-      image(pixelHoverImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+      image(pixelHoverImage, dimension.x, dimension.y, dimension.width, dimension.height);
     } 
     else {
-      image(pixelImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+      image(pixelImage, dimension.x, dimension.y, dimension.width, dimension.height);
     }
   }
   else if (vectorImage != null) {
     if (fingerOverTime > 100.0) {
-      shape(vectorHoverImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+      shape(vectorHoverImage, dimension.x, dimension.y, dimension.width, dimension.height);
     } 
     else {
-      shape(vectorImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+      shape(vectorImage, dimension.x, dimension.y, dimension.width, dimension.height);
     }
   }
 }

@@ -20,8 +20,8 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
     super(x_, y_, width_, height_);
 
     originalPosition = new Rectangle();
-    originalPosition.x = this.boundingBox.x;
-    originalPosition.y = this.boundingBox.y;
+    originalPosition.x = this.dimension.x;
+    originalPosition.y = this.dimension.y;
     this.draggable = true;
     if (text_ != null) {
       text = text_.toUpperCase();
@@ -61,23 +61,23 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
     super.update();
     if (fingerOverTime > 0 && hoverAni_scale.isPlaying() == false && selectedTag == null) {
       selectedTag = this;
-      originalPosition.x = this.boundingBox.x;
-      originalPosition.y = this.boundingBox.y;
-      originalPosition.width = this.boundingBox.width;
-      originalPosition.height = this.boundingBox.height;
-      hoverAni_scale = Ani.to(this.boundingBox, 0.2, "width", this.boundingBox.width * 2.2, Ani.BOUNCE_IN);
-      Ani.to(this.boundingBox, 0.2, "height", this.boundingBox.height * 2.2, Ani.BOUNCE_IN);
-      Ani.to(this.boundingBox, 0.2, "x", this.boundingBox.x - 40, Ani.BOUNCE_IN);
-      Ani.to(this.boundingBox, 0.2, "y", this.boundingBox.y - 40, Ani.BOUNCE_IN);
+      originalPosition.x = this.dimension.x;
+      originalPosition.y = this.dimension.y;
+      originalPosition.width = this.dimension.width;
+      originalPosition.height = this.dimension.height;
+      hoverAni_scale = Ani.to(this.dimension, 0.2, "width", this.dimension.width * 2.2, Ani.BOUNCE_IN);
+      Ani.to(this.dimension, 0.2, "height", this.dimension.height * 2.2, Ani.BOUNCE_IN);
+      Ani.to(this.dimension, 0.2, "x", this.dimension.x - 40, Ani.BOUNCE_IN);
+      Ani.to(this.dimension, 0.2, "y", this.dimension.y - 40, Ani.BOUNCE_IN);
     } 
     else if (fingerOverTime == 0 && selectedTag == this) {
       println("returning tagsize");
       selectedTag = null;
 
-      hoverAni_scale = Ani.to(this.boundingBox, 0.2, "x", originalPosition.x, Ani.BOUNCE_OUT);
-      Ani.to(this.boundingBox, 0.2, "y", originalPosition.y, Ani.BOUNCE_OUT);
-      Ani.to(this.boundingBox, 0.2, "width", originalPosition.width, Ani.BOUNCE_OUT);
-      Ani.to(this.boundingBox, 0.2, "height", originalPosition.height, Ani.BOUNCE_OUT);
+      hoverAni_scale = Ani.to(this.dimension, 0.2, "x", originalPosition.x, Ani.BOUNCE_OUT);
+      Ani.to(this.dimension, 0.2, "y", originalPosition.y, Ani.BOUNCE_OUT);
+      Ani.to(this.dimension, 0.2, "width", originalPosition.width, Ani.BOUNCE_OUT);
+      Ani.to(this.dimension, 0.2, "height", originalPosition.height, Ani.BOUNCE_OUT);
     }
 
 
@@ -95,7 +95,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
     // not dragging anymore, check if we are inside the scanArea
 
     if (draggedBeforeUpdate == true && dragged == false) {
-      if (scanArea.boundingBox.contains(this.boundingBox.x, this.boundingBox.y)) {
+      if (scanArea.dimension.contains(this.dimension.x, this.dimension.y)) {
         addedTags.add(this);
       } 
       else {
@@ -129,17 +129,17 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
     fill(rectFillColor);
     stroke(rectStrokeColor);
     // calculate new size depending on scaleFactor (changed when hovering eg.)
-    float newWidth = boundingBox.width;
-    float newHeight = boundingBox.height;
-    float x_ = this.boundingBox.x;
-    float y_ = this.boundingBox.y;
+    float newWidth = dimension.width;
+    float newHeight = dimension.height;
+    float x_ = this.dimension.x;
+    float y_ = this.dimension.y;
     rect(x_, y_, newWidth, newHeight);
     noStroke();
 
     rectMode(CENTER);
     textAlign(CENTER, CENTER);
     fill(textColor);
-    text(text, (float) this.boundingBox.getCenterX(), (float) this.boundingBox.getCenterY());
+    text(text, (float) this.dimension.getCenterX(), (float) this.dimension.getCenterY());
     //here custom graphics. not using a loaded image
     noTint();
   }

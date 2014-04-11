@@ -71,14 +71,14 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
   private void moveRight(LinkedList<TagButton> l) {
     // moving the individual tags
     for (TagButton t : l) {
-      Ani.to(t.boundingBox, 1, "x", min(width, t.boundingBox.x + 500), Ani.QUAD_OUT);
+      Ani.to(t.dimension, 1, "x", min(width, t.dimension.x + 500), Ani.QUAD_OUT);
     }
   }
 
   private void moveLeft(LinkedList<TagButton> l) {
     // moving the individual tags
     for (TagButton t : l) {
-      Ani.to(t.boundingBox, 1, "x", min(-(tagWidth), t.boundingBox.x - width), Ani.QUAD_OUT);
+      Ani.to(t.dimension, 1, "x", min(-(tagWidth), t.dimension.x - width), Ani.QUAD_OUT);
     }
   }
 
@@ -95,19 +95,19 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     // approach: add tags from top to bottom in a grid like manner
     for (TagButton t : l) {
       // if there is room for another tag, add it to the same row
-      curWidth += t.boundingBox.width + tagDistance;
+      curWidth += t.dimension.width + tagDistance;
       if (curWidth <= this.dimension.width) {
-        t.boundingBox.setLocation(horizPos, vertPos);
+        t.dimension.setLocation(horizPos, vertPos);
         horizPos = curWidth;
       } 
       else {
         // otherwise try to add it in a next row
-        curWidth = t.boundingBox.width + tagDistance;
+        curWidth = t.dimension.width + tagDistance;
         vertPos = curHeight;
         horizPos = this.dimension.x;
-        curHeight = vertPos + (t.boundingBox.height + tagDistance);
+        curHeight = vertPos + (t.dimension.height + tagDistance);
         if (curHeight <= this.dimension.height) {
-          t.boundingBox.setLocation(horizPos, vertPos);
+          t.dimension.setLocation(horizPos, vertPos);
         } else {
           break;
         }
@@ -120,8 +120,8 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
       setInitPositions(l);
       // then animate them to fall down (add the offset to the y location again)
       for (TagButton t : l){
-        t.boundingBox.y -= this.dimension.height;
-        Ani.to(t.boundingBox, 1, "y", t.boundingBox.y + this.dimension.height, Ani.QUAD_OUT);
+        t.dimension.y -= this.dimension.height;
+        Ani.to(t.dimension, 1, "y", t.dimension.y + this.dimension.height, Ani.QUAD_OUT);
         
       }
     
