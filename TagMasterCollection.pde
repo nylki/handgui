@@ -119,7 +119,7 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
       while (curRow <= maxRows) {
         if (it.hasNext() == false) break;
         t = it.next();
-        newWidth += t.dimension.width;
+        newWidth += t.dimension.width + tagDistance;
         if (newWidth > this.dimension.width){
           curRow++;
           newWidth = 0;
@@ -147,7 +147,7 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
        vert += tagHeight + tagDistance; 
       }
       t.dimension.setLocation(horiz, vert); 
-      horiz += t.dimension.width;
+      horiz += t.dimension.width + tagDistance;
     }
   }
 

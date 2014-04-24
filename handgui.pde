@@ -124,7 +124,7 @@ void setup() {
     // spliting columns: 5 tags each column
     //int horizontalRightPosition = width - 300 - (tagWidth + tagDistance) * floor(i/4);
     //int verticalPosition = tagHeight + (i % 4) * tagHeight + (i % 4) * tagDistance;
-    TagButton t = new TagButton(width/2, height/2, tagWidth, tagHeight, tagStrings[i], null);
+    TagButton t = new TagButton(width/2, height/2, tagStrings[i].length() * 15, tagHeight, tagStrings[i], null);
     tags.add(t);
   }
   // creating our collection master to manage our tag groups
