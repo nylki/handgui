@@ -99,9 +99,32 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
   private void initializeGroups() {
     // initially adding tags to the groups (no positions yet, only amount of tags per group,
     // and as a result creation of groups
-    int curWidth = 0;
-    int curHeight = 0;
     int maxRows = this.dimension.height / (tagHeight + tagDistance);
+    
+    LinkedList<TagButton> curGroup;
+    ListIterator<TagButton> it = allTags.listIterator();
+    TagButton t;
+    int curRow = 1;
+    int newWidth = 0;
+    
+    while(curRow <= maxRows){
+      curGroup = new LinkedList<TagButton>();
+      this.add(curGroup);
+      
+      
+      
+      
+      
+      
+      
+      
+    }
+    
+    
+    
+    
+    
+    
 
     // first setting tags to their relative location with a negative vertical offset to be out of display
     int horizPos = this.dimension.x;
