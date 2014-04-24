@@ -24,6 +24,7 @@ this linked list contains lists of tags for each display of tags
 
 class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
   public LinkedList<TagButton> selectedGroup;
+  public LinkedList<TagButton> oldSelectedGroup;
   private LinkedList<TagButton> allTags;
   public ListIterator<LinkedList<TagButton>> groupIterator;
   public int maxTagsPerGroup;
@@ -35,9 +36,13 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     super();
     this.maxTagsPerGroup = _maxTagsPerGroup;
     this.dimension = box;
-    allTags = new LinkedList(list);
+    this.allTags = new LinkedList(list);
+    println("about to sort alphabetically");
     sortAlphabetically();
+    println("finished sorting alphabetically");
     groupIterator = this.listIterator();
+    this.selectedGroup = this.get(0);
+    this.fallFromTop(this.selectedGroup);
   }
 
 
@@ -45,7 +50,8 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
 
   public void select(int index) {
     // move old selection to the right
-    moveRight(selectedGroup);
+    oldSelectedGroup = selectedGroup;
+    moveRight(oldSelectedGroup);
     selectedGroup = this.get(index);
     groupIterator = this.listIterator(index);
     // let the new selection fall from the top
@@ -53,47 +59,56 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
   }
 
   public void selectPrevious() {
-    // move old selection to the right
-    moveRight(selectedGroup);
-    selectedGroup = groupIterator.previous();
-    // let the new selection fall from the top
-    fallFromTop(selectedGroup);
+    if (groupIterator.hasPrevious()) {
+      // move old selection to the right
+      oldSelectedGroup = selectedGroup;
+      moveRight(oldSelectedGroup);
+
+      selectedGroup = groupIterator.previous();
+      // let the new selection fall from the top
+      fallFromTop(selectedGroup);
+    }
   }
 
   public void selectNext() {
-    // move old selection to the left
-    moveLeft(selectedGroup);
-    selectedGroup = groupIterator.next();
-    // let the new selection fall from the top
-    fallFromTop(selectedGroup);
+    if (groupIterator.hasNext()) {
+      // move old selection to the left
+      oldSelectedGroup = selectedGroup;
+      moveLeft(oldSelectedGroup);
+      selectedGroup = groupIterator.next();
+      // let the new selection fall from the top
+      fallFromTop(selectedGroup);
+    }
   }
 
   private void moveRight(LinkedList<TagButton> l) {
     // moving the individual tags
     for (TagButton t : l) {
-      Ani.to(t.dimension, 1, "x", min(width, t.dimension.x + 500), Ani.QUAD_OUT);
+      Ani.to(t.dimension, 2, "x", width + tagWidth + 50, Ani.QUAD_OUT);
     }
   }
 
   private void moveLeft(LinkedList<TagButton> l) {
     // moving the individual tags
     for (TagButton t : l) {
-      Ani.to(t.dimension, 1, "x", min(-(tagWidth), t.dimension.x - width), Ani.QUAD_OUT);
+      Ani.to(t.dimension, 2, "x", -tagWidth - 50, Ani.QUAD_OUT);
     }
   }
 
-  private void setInitPositions(LinkedList<TagButton> l) {
-    // TODO: check if we can do this for every group to determine its size etc.
-    // and add tags that d not fit in one group to the next
+
+  private void initializeGroups() {
+    // initially adding tags to the groups (no positions yet, only amount of tags per group,
+    // and as a result creation of groups
     int curWidth = 0;
     int curHeight = 0;
+    int maxRows = this.dimension.height / (tagHeight + tagDistance);
 
     // first setting tags to their relative location with a negative vertical offset to be out of display
     int horizPos = this.dimension.x;
     int vertPos = this.dimension.y;
 
     // approach: add tags from top to bottom in a grid like manner
-    for (TagButton t : l) {
+    for (TagButton t : allTags) {
       // if there is room for another tag, add it to the same row
       curWidth += t.dimension.width + tagDistance;
       if (curWidth <= this.dimension.width) {
@@ -108,30 +123,34 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
         curHeight = vertPos + (t.dimension.height + tagDistance);
         if (curHeight <= this.dimension.height) {
           t.dimension.setLocation(horizPos, vertPos);
-        } else {
+        } 
+        else {
           break;
         }
       }
     }
   }
 
-    private void fallFromTop(LinkedList<TagButton> l) {
+  private void setInitPositions(LinkedList<TagButton> l) {
 
-      setInitPositions(l);
-      // then animate them to fall down (add the offset to the y location again)
-      for (TagButton t : l){
-        t.dimension.y -= this.dimension.height;
-        Ani.to(t.dimension, 1, "y", t.dimension.y + this.dimension.height, Ani.QUAD_OUT);
-        
-      }
-    
-    
+    // HAS TO BE FIXED. DOES NOT WORK.
+  }
+
+  private void fallFromTop(LinkedList<TagButton> l) {
+    setInitPositions(l);
+    // then animate them to fall down (add the offset to the y location again)
+    for (TagButton t : l) {
+      t.dimension.y -= 500;
+      Ani.to(t.dimension, 0.9, "y", t.dimension.y + 500, Ani.QUAD_OUT);
+    }
+    this.selectedGroup = l;
   }
 
 
 
   public void removeTag(TagButton t) {
   }
+
 
 
 
@@ -145,13 +164,19 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
 
     // creating new groups
     int i = 0;
-    while (i <= allTags.size ()) {
+    int groupCount = 0;
+    while (i < allTags.size ()) {
+      groupCount++;
+      println("sorting alphabetically. group:" + groupCount);
       LinkedList<TagButton> curGroup = new LinkedList<TagButton>();
       for (int curCount = 0; curCount <= maxTagsPerGroup; curCount++) {
+        if (i >= allTags.size ()) break;
         curGroup.add(allTags.get(i));
+        i++;
       }
       this.add(curGroup);
-    }
+    } 
+    this.selectedGroup = this.getFirst();
   }
 
 

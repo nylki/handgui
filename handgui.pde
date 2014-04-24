@@ -24,6 +24,7 @@ import processing.video.*;
 //modifier/Action tags: ocr, outline, scan QR-code, (Glitch!)
 
 boolean debugEnabled = false;
+boolean calibrationCheat = true;
 
 boolean Redraw = false;
 LeapMotion leap;
@@ -31,7 +32,7 @@ Capture cam;
 OpenCV opencv;
 ArrayList<Finger> fingers;
 GuiElement scanButton;
-GuiElement caption1, caption2;
+GuiElement caption;
 ScanArea scanArea;
 ArrayList<TagButton> tags = new ArrayList<TagButton>();
 TagButton draggedTag;
@@ -66,7 +67,7 @@ float MIN_FINGER_VISIBLE_TIME = 0.2;
 boolean fingerInGUIElement = false; //track if finger was/is in guielement, to reduce load
 int tagHeight = 40;
 int tagWidth = 80;
-int tagDistance = 10;
+int tagDistance = 5;
 
 
 ArrayList<PImage> imageList = new ArrayList<PImage>();
@@ -86,7 +87,7 @@ void setup() {
   background(0);
   colorMode(RGB, 255, 255, 255);
   Ani.init(this);
-  
+
   leap = new LeapMotion(this).withGestures();
   String[] cameras = Capture.list();
 
@@ -105,8 +106,8 @@ void setup() {
   opencv = new OpenCV(this, 1920, 1080);
   fingers = new ArrayList<Finger>();
   modifiedFingerPositions = new ArrayList<PVector>();
-  
-  
+
+
   PImage scanButtonImage = loadImage("capture_2.png" );
   PImage scanButtonImage_hover = loadImage("capture_1.png" );
 
@@ -116,30 +117,27 @@ void setup() {
   scanArea = new ScanArea(0, 0, scanAreaImage, scanAreaImage, (int) scanAreaImage.width * 9/10, (int) scanAreaImage.height * 9/10);
 
   PImage caption1_image = loadImage("keyword.png");
-  caption1 = new GuiElement(width - 400, 10, caption1_image, caption1_image, caption1_image.width/2, caption1_image.height/2);
-  
+  caption = new GuiElement(width - 400, 10, caption1_image, caption1_image, caption1_image.width/2, caption1_image.height/2);
+
   String tagStrings[] = loadStrings("tags.txt");
   for (int i = 0 ; i < tagStrings.length; i++) {
     // spliting columns: 5 tags each column
-    int horizontalRightPosition = width - 300 - (tagWidth + tagDistance) * floor(i/4);
-    int verticalPosition = tagHeight + (i % 4) * tagHeight + (i % 4) * tagDistance;
-    TagButton t = new TagButton(horizontalRightPosition, verticalPosition, tagWidth, tagHeight, tagStrings[i], null);
+    //int horizontalRightPosition = width - 300 - (tagWidth + tagDistance) * floor(i/4);
+    //int verticalPosition = tagHeight + (i % 4) * tagHeight + (i % 4) * tagDistance;
+    TagButton t = new TagButton(width/2, height/2, tagWidth, tagHeight, tagStrings[i], null);
     tags.add(t);
   }
-  
-  tagCollection = new TagMasterCollection(tags, 12, new Rectangle(width - 300, tagHeight, 300, 500));
+  // creating our collection master to manage our tag groups
+  tagCollection = new TagMasterCollection(tags, 7, new Rectangle(width - 400, 100, 400, 400));
 }
 
 void update() {
-
-  //while (true) {
-
   // updating scanArea will also update photo taking
+  if (calibrationCheat == true && scanArea.calibrated == false) calibrationCheat();
   scanArea.update();
   if (scanArea.calibrated == false) return;
   scanButton.update();
   if (scanButton.clicked == true) {
-    println("taking scan photo");
     scanArea.takePhoto();
   }
 
@@ -208,7 +206,6 @@ void update() {
       frontFingerPosition.x += 250;
       frontFingerPosition.z = newZ;
 
-
       Collections.sort(fingers, new XCoordinateComparator());
 
       for (Finger f : fingers) {
@@ -236,20 +233,16 @@ void update() {
         //println("set distanceThumbToIndexFinger high, to prevent accidentally dragging tags");
         // if nothing is being dragged and only a single finger is visible, set the distance of thumb to index finger to something high
         // to prevent accidentally dragging with a single finger
-       // distanceThumbToIndexFinger = width;
+        // distanceThumbToIndexFinger = width;
       }
     }
   }
 
 
   //println("hand to centerThumbFinger is: " + directionHandToPinchCenter.x + ", " + directionHandToPinchCenter.y);
-
-  caption1.update();
-  caption2.update();
+  caption.update();
   draggedTag = null;
-
   for (int i = 0; i < tags.size(); i++) tags.get(i).update();
-
   // change the location of a dragged tag according to the estimated pinch location
   // maybe put this into the tag itself?
   if (draggedTag != null) {
@@ -264,20 +257,20 @@ void update() {
   if (addedTags.isEmpty() == false) {
     TagButton t;
     Point newLocation = new Point(scanArea.dimension.x + 20, scanArea.dimension.y + 20);
-    
+
     for (int i = 0; i < addedTags.size(); i++) {
       t = addedTags.get(i);
-      if(t != draggedTag){
-        
+      if (t != draggedTag) {
+
         //animate to new position if tag is not already there
-        if(t.dimension.getLocation().equals(newLocation) == false){
+        if (t.dimension.getLocation().equals(newLocation) == false) {
           t.moveTo((int) newLocation.x, (int) newLocation.y, 0.5);
         }
         // increase x location of following tag
         newLocation.x += t.dimension.width + 5;
-        
-      	//t.boundingBox.setLocation((i * t.boundingBox.width) + 5, t.boundingBox.height + 10);
-        }
+
+        //t.boundingBox.setLocation((i * t.boundingBox.width) + 5, t.boundingBox.height + 10);
+      }
     }
   }
 }
@@ -294,61 +287,73 @@ void draw() {
 
   // display all gui elements: buttons, tags, etc.
   for (TagButton t : tags) t.display();
-  caption1.display();
-  caption2.display();
+  caption.display();
   scanButton.display();
   scanArea.display();
 
-// debug: show pinch coordinates
-if(debugEnabled == true){
-  if (modifiedFingerPositions.size() > 1) {
-    fill(0, 255, 0);
-    ellipse(centerThumbFinger.x, centerThumbFinger.y, 10, 10);
-    stroke(0, 128, 128);
-    pushMatrix();
-    translate(thumb.x, thumb.y);
-    line(0, 0, directionThumbFinger.x, directionThumbFinger.y);
-    popMatrix();
-  }
-  if (leap.hasHands()) {
-    fill(255, 0, 0);
-    ellipse(modifiedHandPosition.x, modifiedHandPosition.y, 50, 50);
-    pushMatrix();
-    translate(modifiedHandPosition.x, modifiedHandPosition.y);
-    line(0, 0, directionHandToPinchCenter.x, directionHandToPinchCenter.y);
-    PVector actualPositionBothFingers = PVector.add(modifiedHandPosition, directionHandToPinchCenter);
-    text((int) actualPositionBothFingers.x + ", " + (int) actualPositionBothFingers.y, directionHandToPinchCenter.x, directionHandToPinchCenter.y);
-    popMatrix();
-  }
-}
- ///////////////////
+  // debug: show pinch coordinates
+  if (debugEnabled == true) {
+    if (modifiedFingerPositions.size() > 1) {
+      fill(0, 255, 0);
+      ellipse(centerThumbFinger.x, centerThumbFinger.y, 10, 10);
+      stroke(0, 128, 128);
+      pushMatrix();
+      translate(thumb.x, thumb.y);
+      line(0, 0, directionThumbFinger.x, directionThumbFinger.y);
+      popMatrix();
+    }
+    if (leap.hasHands()) {
+      fill(255, 0, 0);
+      ellipse(modifiedHandPosition.x, modifiedHandPosition.y, 50, 50);
+      pushMatrix();
+      translate(modifiedHandPosition.x, modifiedHandPosition.y);
+      line(0, 0, directionHandToPinchCenter.x, directionHandToPinchCenter.y);
 
-
-    // draw the cursors/circles where fingers are
-    if (modifiedFingerPositions.size() > 0) {
-      fill(50, 180, 220,128);
-      for (PVector position : modifiedFingerPositions) {
-        float diameterPointer = map(position.z, -height/2, height/2, 6, 30);
-        ellipse(position.x, position.y, diameterPointer, diameterPointer);
-      }
+      PVector actualPositionBothFingers = PVector.add(modifiedHandPosition, directionHandToPinchCenter);
+      text((int) actualPositionBothFingers.x + ", " + (int) actualPositionBothFingers.y, directionHandToPinchCenter.x, directionHandToPinchCenter.y);
+      popMatrix();
     }
   }
-  
-  
-  void keyPressed(){
-   if(key == 'd') debugEnabled = !debugEnabled;
-   
-   // toggle calibration cheat, to say it calibration is succesful, when it actually is not. for testing purposes.
-   if(key == 'c'){
-     scanArea.calibrated = true;
-     Rectangle refSize = new Rectangle(0, 0, cam.height, (int) (((float) scanArea.dimension.height) *  ((float) cam.height) / ((float) scanArea.dimension.width)));
-     scanArea.canonicalPoints[0] = new Point(refSize.width, 0);
-     scanArea.canonicalPoints[1] = new Point(0, 0);
-     scanArea.canonicalPoints[2] = new Point(0, refSize.height);
-     scanArea.canonicalPoints[3] = new Point(refSize.width, refSize.height);
-     scanArea.unwarpedPoints[0] = scanArea.canonicalPoints[0];
-     scanArea.unwarpedPoints[1] = scanArea.canonicalPoints[1];
-     scanArea.unwarpedPoints[2] = scanArea.canonicalPoints[2];
-     scanArea.unwarpedPoints[3] = scanArea.canonicalPoints[3];     
-   }
+  ///////////////////
+
+
+  // draw the cursors/circles where fingers are
+  if (modifiedFingerPositions.size() > 0) {
+    fill(50, 180, 220, 128);
+    for (PVector position : modifiedFingerPositions) {
+      float diameterPointer = map(position.z, -height/2, height/2, 6, 30);
+      ellipse(position.x, position.y, diameterPointer, diameterPointer);
+    }
   }
+}
+
+
+void calibrationCheat() {
+  scanArea.calibrated = true;
+  Rectangle refSize = new Rectangle(0, 0, cam.height, (int) (((float) scanArea.dimension.height) *  ((float) cam.height) / ((float) scanArea.dimension.width)));
+  scanArea.canonicalPoints[0] = new Point(refSize.width, 0);
+  scanArea.canonicalPoints[1] = new Point(0, 0);
+  scanArea.canonicalPoints[2] = new Point(0, refSize.height);
+  scanArea.canonicalPoints[3] = new Point(refSize.width, refSize.height);
+  scanArea.unwarpedPoints[0] = scanArea.canonicalPoints[0];
+  scanArea.unwarpedPoints[1] = scanArea.canonicalPoints[1];
+  scanArea.unwarpedPoints[2] = scanArea.canonicalPoints[2];
+  scanArea.unwarpedPoints[3] = scanArea.canonicalPoints[3];
+}
+
+void keyPressed() {
+  if (key == 'd') debugEnabled = !debugEnabled;
+
+  // toggle calibration cheat, to say it calibration is succesful, when it actually is not. for testing purposes.
+  if (key == 'c') {
+    calibrationCheat();
+  }
+
+  if (key == 'n') {
+    tagCollection.selectNext();
+  }
+
+  if (key == 'p') {
+    tagCollection.selectPrevious();
+  }
+}

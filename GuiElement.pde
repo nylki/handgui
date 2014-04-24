@@ -1,5 +1,5 @@
 class GuiElement {
-  Rectangle boundingBox;
+  Rectangle dimension;
   PImage pixelImage, pixelHoverImage;
   PShape vectorImage, vectorHoverImage;
   float fingerOverTime_beforeUpdate = 0.0;
@@ -28,10 +28,10 @@ class GuiElement {
 
   GuiElement(int x_, int y_, PImage img, PImage hoverImg, Integer width_, Integer height_) {
     if (width_ == null && height_ == null) {
-      boundingBox = new Rectangle(x_, y_, (int)img.width, (int) img.height);
+      this.dimension = new Rectangle(x_, y_, (int)img.width, (int) img.height);
     } 
     else {
-      boundingBox = new Rectangle(x_, y_, width_, height_);
+      this.dimension = new Rectangle(x_, y_, width_, height_);
     }
     pixelImage = img;
     pixelHoverImage = hoverImg;
@@ -40,10 +40,10 @@ class GuiElement {
 
   GuiElement(int x_, int y_, PShape img, PShape hoverImg, Integer width_, Integer height_) {
     if (width_ == null && height_ == null) {
-      boundingBox = new Rectangle(x_, y_, (int) img.width, (int) img.height);
+      this.dimension = new Rectangle(x_, y_, (int) img.width, (int) img.height);
     } 
     else {
-      boundingBox = new Rectangle(x_, y_, width_, height_);
+      this.dimension = new Rectangle(x_, y_, width_, height_);
     }
     pixelImage = null;
     vectorImage = img;  
@@ -51,7 +51,7 @@ class GuiElement {
   }
 
   GuiElement(int x_, int y_, Integer width_, Integer height_) {
-    boundingBox = new Rectangle(x_, y_, width_, height_);
+    this.dimension = new Rectangle(x_, y_, width_, height_);
     pixelImage = null;
     pixelHoverImage = null;
     vectorImage = null;  
@@ -87,7 +87,7 @@ class GuiElement {
       // check if finger is inside this GUI Element/button
       // if it is, add the passed time to *fingerOverTime*, so we can see
       // how long the finger has been hovering over the button
-      if (this.boundingBox.contains((int) frontFingerPosition.x, (int) frontFingerPosition.y)) {
+      if (this.dimension.contains((int) frontFingerPosition.x, (int) frontFingerPosition.y)) {
         if (fingerOverTime == 0.0) {
           //just entered the element with a finger
           fingerOverTime = 1.0;
@@ -108,7 +108,7 @@ class GuiElement {
 
 
       if (modifiedFingerPositions.size() >= 2 && this.dragged == false) {
-        previousPinchInside = this.boundingBox.contains((int) centerThumbFinger.x, (int) centerThumbFinger.y);
+        previousPinchInside = this.dimension.contains((int) centerThumbFinger.x, (int) centerThumbFinger.y);
       }
     }
   }
@@ -116,8 +116,8 @@ class GuiElement {
 
   void moveTo(int x, int y, float time) {
     if ( movingAnimation.isPlaying() == false) {
-      movingAnimation = Ani.to(boundingBox, time, "x", x, Ani.EXPO_IN);
-      Ani.to(boundingBox, time, "y", y, Ani.EXPO_IN);
+      movingAnimation = Ani.to(dimension, time, "x", x, Ani.EXPO_IN);
+      Ani.to(dimension, time, "y", y, Ani.EXPO_IN);
     }
   }
 
@@ -137,24 +137,24 @@ class GuiElement {
     if (pixelImage != null) {
       if (fingerOverTime > 0.0) {
         tint(255, map(frontFingerPosition.z, 0.0, 900.0, 255, 0));
-        image(pixelImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+        image(pixelImage, dimension.x, dimension.y, dimension.width, dimension.height);
         tint(255, map(frontFingerPosition.z, 0.0, 900.0, 0, 255));
-        image(pixelHoverImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+        image(pixelHoverImage, dimension.x, dimension.y, dimension.width, dimension.height);
       } 
       else {
         tint(255, opacity);
-        image(pixelImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+        image(pixelImage, dimension.x, dimension.y, dimension.width, dimension.height);
         noTint();
       }
     }
     else if (vectorImage != null) {
       if (fingerOverTime > 0.0) {
-        shape(vectorHoverImage, boundingBox.x, boundingBox.y);
+        shape(vectorHoverImage, dimension.x, dimension.y);
       } 
       else {
         //vectorImage.disableStyle();
         //fill(255,0,0, map(mouseX, 0,width, 0, 255));
-        shape(vectorImage, boundingBox.x, boundingBox.y);
+        shape(vectorImage, dimension.x, dimension.y);
         //vectorImage.enableStyle();
       }
     }

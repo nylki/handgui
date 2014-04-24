@@ -2,12 +2,16 @@ Journal
 Book
 Note
 Sketch
+Software
+Hardware
 Image
 Model
 Technique
 Fluid
 Note Taking
 UXD
+Zetzet
 Writing
 Scholarly Primitives
 Data
+dies ist ein Tag
