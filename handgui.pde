@@ -67,7 +67,7 @@ float MIN_FINGER_VISIBLE_TIME = 0.2;
 boolean fingerInGUIElement = false; //track if finger was/is in guielement, to reduce load
 int tagHeight = 40;
 int tagWidth = 80;
-int tagDistance = 5;
+int tagDistance = 10;
 
 
 ArrayList<PImage> imageList = new ArrayList<PImage>();
@@ -128,7 +128,7 @@ void setup() {
     tags.add(t);
   }
   // creating our collection master to manage our tag groups
-  tagCollection = new TagMasterCollection(tags, 7, new Rectangle(width - 400, 100, 400, 400));
+  tagCollection = new TagMasterCollection(tags, 7, new Rectangle(width - 550, 100, 500, 450));
 }
 
 void update() {
