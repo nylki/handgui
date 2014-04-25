@@ -128,7 +128,7 @@ void setup() {
     tags.add(t);
   }
   // creating our collection master to manage our tag groups
-  tagCollection = new TagMasterCollection(tags, 7, new Rectangle(width - 550, 100, 500, 450));
+  tagCollection = new TagMasterCollection(tags, 7, new Rectangle(width - 550, 50, 450, 450));
 }
 
 void update() {
@@ -286,7 +286,14 @@ void draw() {
   }
 
   // display all gui elements: buttons, tags, etc.
-  for (TagButton t : tags) t.display();
+  
+  // first displaying all tags that are not selected. then (if exists) the selected tag
+  // so it's above the others
+  for (TagButton t : tags){
+    if(selectedTag != t) t.display();
+  }
+  if(selectedTag != null) selectedTag.display();
+  
   caption.display();
   scanButton.display();
   scanArea.display();

@@ -35,7 +35,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
       font = font_;
     } 
     else {
-      font = createFont("RobotoCondensed-Bold", 16);
+      font = createFont("RobotoCondensed-Bold", 24);
     }
   }
 
