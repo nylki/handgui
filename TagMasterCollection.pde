@@ -24,12 +24,13 @@ this linked list contains lists of tags for each display of tags
 
 class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
   public LinkedList<TagButton> selectedGroup;
+  private int selectionIndex = 0;
   private LinkedList<TagButton> allTags;
-  public ListIterator<LinkedList<TagButton>> groupIterator;
   public int maxTagsPerGroup;
   public int maxWidth;
   public Point location;
   public Rectangle dimension;
+  
 
   public TagMasterCollection(Collection list, int _maxTagsPerGroup, Rectangle box) {
     super();
@@ -42,9 +43,18 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     println("starting group initialization...");
     initializeGroups();
     println("finished group initialization.");
-    groupIterator = this.listIterator();
     this.selectedGroup = this.get(0);
     this.fallFromTop(this.selectedGroup);
+    printGroups();
+  }
+  
+  private void printGroups(){
+    int i=0;
+    for(LinkedList<TagButton> group : this){
+     println("group: " + i++);
+     for(TagButton t : group)
+       println(t.text);
+    }
   }
 
 
@@ -52,39 +62,41 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     // move old selection to the right
     LinkedList<TagButton> oldSelectedGroup = selectedGroup;
     moveRight(oldSelectedGroup);
-    selectedGroup = this.get(index);
-    groupIterator = this.listIterator(index);
+    selectionIndex = index;
+    selectedGroup = this.get(selectionIndex);
     // let the new selection fall from the top
     fallFromTop(selectedGroup);
   }
 
   public void selectPrevious() {
-    if (groupIterator.hasPrevious()) {
+      selectionIndex = selectionIndex - 1 % this.size()-1;
+      println("new iterator index: " + selectionIndex);
       // move old selection to the right
       LinkedList<TagButton> oldSelectedGroup = selectedGroup;
       moveRight(oldSelectedGroup);
-
-       selectedGroup = groupIterator.previous();
+      
+       selectedGroup = this.get(selectionIndex);
       // let the new selection fall from the top
       fallFromTop(selectedGroup);
-    }
+    
   }
 
   public void selectNext() {
-    if (groupIterator.hasNext()) {
+      selectionIndex = selectionIndex + 1 % this.size()-1;
+      println("new iterator index: " + selectionIndex);
       // move old selection to the left
-      oldSelectedGroup = selectedGroup;
+      LinkedList<TagButton> oldSelectedGroup = selectedGroup;
       moveLeft(oldSelectedGroup);
-      selectedGroup = groupIterator.next();
+      
+      selectedGroup = this.get(selectionIndex);
       // let the new selection fall from the top
       fallFromTop(selectedGroup);
-    }
   }
 
   private void moveRight(LinkedList<TagButton> l) {
     // moving the individual tags
     for (TagButton t : l) {
-      Ani.to(t.dimension, 3.0, "x", t.dimension.x + this.dimension.width, Ani.QUAD_OUT);
+      Ani.to(t.dimension, 3.0, "x", t.dimension.x + width, Ani.QUAD_OUT);
     }
   }
 
@@ -159,7 +171,6 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
       t.dimension.y -= this.dimension.height;
       Ani.to(t.dimension, 2.0, "y", t.dimension.y + this.dimension.height, Ani.QUAD_OUT);
     }
-    this.selectedGroup = l;
   }
 
 
