@@ -132,9 +132,6 @@ class ScanArea extends GuiElement {
           ArrayList<PVector> polygonPoints = polygonalApprox.getPoints();
 
           refSize = new Rectangle(0, 0, cam.height, (int) (((float) dimension.height) *  ((float) cam.height) / ((float) dimension.width)));
-
-
-          println("this.boundingBox = " + this.dimension.width + ", " + this.dimension.height);
           //println("refSize = " + cam.height + ", " + (int) ( ((float) this.boundingBox.height) *  ((float) ((float) cam.height) / ((float) this.boundingBox.width))));
           //refSize = eg (480, 800 * (480/960)) = (480,400)
 
@@ -179,9 +176,7 @@ class ScanArea extends GuiElement {
     lastPhoto = warpPerspective(cam, unwarpedPoints, canonicalPoints, refSize);
     brightness = 0;
     photoStarted = 0;
-  
 }
-
 
 void update() {
 

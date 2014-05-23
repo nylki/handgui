@@ -1,5 +1,4 @@
 class TagButton extends GuiElement implements Comparable<TagButton> {
-  int tagClass;  // either KEYWORD or CATEGORY
   String text;
   PFont font;
   // we might want to change the color to match the wanted color
@@ -51,7 +50,6 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
     //change draggedTag to this / remove. if necessary
     draggedBeforeUpdate = this.dragged;
     super.updateDrag();
-    //if(draggedTag != null && draggedTag != this) return;
     if (this.dragged == true) 
     {
       println(this.text + " is dragged." );
@@ -73,7 +71,6 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
       Ani.to(this.dimension, 0.2, "y", this.dimension.y - 40, Ani.BOUNCE_IN);
     } 
     else if (fingerOverTime == 0 && selectedTag == this) {
-      println("returning tagsize");
       selectedTag = null;
 
       hoverAni_scale = Ani.to(this.dimension, 0.2, "x", originalPosition.x, Ani.BOUNCE_OUT);
@@ -91,7 +88,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
        this.opacityDownAnimation = true;
        this.boundingBox.setLocation(originalPosition.x, originalPosition.y);
        addedTags.remove(this);
-       	  */
+     */
     }
 
     // not dragging anymore, check if we are inside the scanArea
