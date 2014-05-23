@@ -13,6 +13,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
   Ani hoverAni_translatex = new Ani(this, 0, "scaleFactor", 1.0);
   Ani hoverAni_translatey = new Ani(this, 0, "scaleFactor", 1.0);
   boolean selected = false;
+  boolean visible = false;
   int row;
 
 
@@ -107,6 +108,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
   }
 
   void display() {
+    if(this.visible == false) return;
     rectMode(CORNER);
     textFont(font);
 

@@ -46,6 +46,7 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     println("finished group initialization.");
     this.selectedGroup = this.get(0);
     this.fallFromTop(this.selectedGroup);
+    for(TagButton t : this.selectedGroup) t.visible = true;
     printGroups();
   }
   
@@ -126,12 +127,10 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     this.clear();
     
     int maxRows = this.dimension.height / (tagHeight + tagDistance);
-
     LinkedList<TagButton> curGroup;
     ListIterator<TagButton> it = allTags.listIterator();
     TagButton t;
     int curRow = 1;
-    int curCount = 0;
     int newWidth = 0;
 
     while (it.hasNext ()) {
@@ -143,8 +142,7 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
         if (it.hasNext() == false) break;
         t = it.next();
         newWidth += (t.dimension.width + tagDistance*2);
-        println("newWidth: " + newWidth + ", collection width: " + this.dimension.width);
-        if (newWidth >= this.dimension.width){
+        if (newWidth > this.dimension.width){
           println("increasing row for: " + t.text);
           curRow++;
           newWidth = 0;
@@ -180,6 +178,7 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
 
   private void fallFromTop(LinkedList<TagButton> l) {
     setInitPositions(l);
+    for(TagButton t : l) t.visible = true;
     // then animate them to fall down (add the offset to the y location again)
     for (TagButton t : l) {
       t.dimension.y -= height/2;
