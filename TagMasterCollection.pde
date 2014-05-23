@@ -30,6 +30,7 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
   public int maxWidth;
   public Point location;
   public Rectangle dimension;
+  Ani movingAni = null;
   
 
   public TagMasterCollection(Collection list, int _maxTagsPerGroup, Rectangle box) {
@@ -69,20 +70,26 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
   }
 
   public void selectPrevious() {
-      selectionIndex = selectionIndex - 1 % this.size()-1;
+      if(movingAni != null && movingAni.isPlaying()) return;
+      
+      selectionIndex = (selectionIndex - 1);
+      if(selectionIndex < 0) selectionIndex = this.size() - 1;  
       println("new iterator index: " + selectionIndex);
       // move old selection to the right
       LinkedList<TagButton> oldSelectedGroup = selectedGroup;
       moveRight(oldSelectedGroup);
       
        selectedGroup = this.get(selectionIndex);
+       setInitPositions(selectedGroup);
       // let the new selection fall from the top
       fallFromTop(selectedGroup);
     
   }
 
   public void selectNext() {
-      selectionIndex = selectionIndex + 1 % this.size()-1;
+      if(movingAni != null && movingAni.isPlaying()) return;
+    
+      selectionIndex = (selectionIndex + 1) %  this.size();
       println("new iterator index: " + selectionIndex);
       // move old selection to the left
       LinkedList<TagButton> oldSelectedGroup = selectedGroup;
@@ -96,7 +103,8 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
   private void moveRight(LinkedList<TagButton> l) {
     // moving the individual tags
     for (TagButton t : l) {
-      Ani.to(t.dimension, 3.0, "x", t.dimension.x + width, Ani.QUAD_OUT);
+      // using sequences in the future for hand movement
+      movingAni = Ani.to(t.dimension, 2.0, "x", t.dimension.x + width*2, Ani.QUAD_OUT);
     }
   }
 
@@ -104,7 +112,8 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     // moving the individual tags
     
     for (TagButton t : l) {
-      Ani.to(t.dimension, 3.0, "x", t.dimension.x - width, Ani.QUAD_OUT);
+      // using sequences in the future for hand movement
+      movingAni = Ani.to(t.dimension, 2.0, "x", t.dimension.x - width*2, Ani.QUAD_OUT);
     }
   }
 
@@ -113,7 +122,7 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     // initially adding tags to the groups (no positions yet, only amount of tags per group,
     // and as a result creation of groups
     
-        // clearing previous list
+    // clearing previous list
     this.clear();
     
     int maxRows = this.dimension.height / (tagHeight + tagDistance);
@@ -143,6 +152,8 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
         if (curRow <= maxRows) {
           t.row = curRow;
           curGroup.add(t);
+        } else {
+           println("tag is overhanging, losing it (FIXME) : " + t.text); 
         }
       }
     }
@@ -153,12 +164,15 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     int horiz = this.dimension.x;
     int vert = this.dimension.y;
     int prevRow = 1;
+    println("setinitpositions for group: " + this.indexOf(l));
     for(TagButton t : l){
+      
       if(t.row > prevRow){
        prevRow = t.row;
        horiz = this.dimension.x;
        vert += tagHeight + tagDistance; 
       }
+      println("setting positions for " + t.text + " with: " + horiz + ", " + vert);
       t.dimension.setLocation(horiz, vert); 
       horiz += t.dimension.width + tagDistance;
     }
@@ -168,8 +182,8 @@ class TagMasterCollection extends LinkedList<LinkedList<TagButton>> {
     setInitPositions(l);
     // then animate them to fall down (add the offset to the y location again)
     for (TagButton t : l) {
-      t.dimension.y -= this.dimension.height;
-      Ani.to(t.dimension, 2.0, "y", t.dimension.y + this.dimension.height, Ani.QUAD_OUT);
+      t.dimension.y -= height/2;
+      Ani.to(t.dimension, 1.5, "y", t.dimension.y + this.dimension.height, Ani.BOUNCE_OUT);
     }
   }
 

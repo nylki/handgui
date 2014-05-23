@@ -128,7 +128,7 @@ void setup() {
     tags.add(t);
   }
   // creating our collection master to manage our tag groups
-  tagCollection = new TagMasterCollection(tags, 4, new Rectangle(width - 550, 50, 450, 450));
+  tagCollection = new TagMasterCollection(tags, 20, new Rectangle(width - 550, 50, 450, 450));
 }
 
 void update() {
