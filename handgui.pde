@@ -46,6 +46,8 @@ PImage lastPhoto = null;
 Ani draggedLocationAni = null;
 TagMasterCollection tagCollection;
 
+boolean justSelected = false;
+
 
 
 //GLOBAL
@@ -53,33 +55,36 @@ ArrayList<PVector> modifiedFingerPositions;
 PVector modifiedHandPosition = new PVector(0, 0);
 
 PVector previousHand = new PVector(0, 0);
-PVector thumb = new PVector(0, 0);
-PVector indexFinger = new PVector(0, 0);
-PVector centerThumbFinger = new PVector(0, 0);
+PVector thumbPosition = new PVector(0, 0);
+PVector indexFingerPosition = new PVector(0, 0);
+PVector centerThumbIndexFinger = new PVector(0, 0);
 PVector directionThumbFinger = new PVector(0, 0);
-float distanceThumbToIndexFinger = 1000;
+float previousPinchStrength = 0.0;
 PVector directionHandToPinchCenter = new PVector(0, 0);
 
+Hand hand;
+Finger indexFinger;
+Finger thumb;
 
-Finger frontFinger;
-PVector frontFingerPosition = new PVector(0, 0);
 float MIN_FINGER_VISIBLE_TIME = 0.2;
 boolean fingerInGUIElement = false; //track if finger was/is in guielement, to reduce load
 int tagHeight = 40;
 int tagWidth = 80;
-int tagDistance = 10;
+int tagDistance = 20;
 
 
 ArrayList<PImage> imageList = new ArrayList<PImage>();
 
-class XCoordinateComparator implements Comparator<Finger> {
-  @Override
-    public int compare(Finger a, Finger b) {
-    float ax = a.getPosition().x;
-    float bx = b.getPosition().x;
-    return ax < bx ? -1 : ax == bx ? 0 : 1;
-  }
+
+PVector transformPosition(PVector oldPos) {
+  PVector newPos = new PVector(0, 0, 0);
+  float newZ = oldPos.y;
+  newPos.y = map(oldPos.z, 80, 10, 0, height) + 150;
+  newPos.x = oldPos.x + 150;
+  newPos.z = newZ;
+  return newPos;
 }
+
 
 void setup() {
   size(displayWidth, displayHeight, P2D);
@@ -88,7 +93,7 @@ void setup() {
   colorMode(RGB, 255, 255, 255);
   Ani.init(this);
 
-  leap = new LeapMotion(this).withGestures();
+  leap = new LeapMotion(this).withGestures("swipe");
   String[] cameras = Capture.list();
 
   if (cameras.length == 0) {
@@ -159,7 +164,6 @@ void update() {
 
       try {
         Process p = Runtime.getRuntime().exec(command);
-
         BufferedReader stdInput = new BufferedReader(new 
           InputStreamReader(p.getInputStream()));
 
@@ -184,57 +188,30 @@ void update() {
 
   modifiedFingerPositions.clear();
   modifiedHandPosition.mult(0);
-  frontFingerPosition.mult(0);
+  indexFingerPosition.mult(0);
   fingers.clear();
   if (leap.hasHands()) {
-
+    hand = leap.getHands().get(0);
     //change coordinates of hand and fingers relating to the different usage of the leap motion (tablet mode / 90 degree rotated)
-    modifiedHandPosition = leap.getHands().get(0).getPosition();
-    float newZ = modifiedHandPosition.y;
-    modifiedHandPosition.y = map(modifiedHandPosition.z, 80, 10, 0, height) + 150;
-    modifiedHandPosition.x += 250;
-    modifiedHandPosition.z = newZ;
-
+    modifiedHandPosition = transformPosition(hand.getPosition());
 
     if (leap.hasFingers()) {
       fingers = leap.getFingers();
-      frontFinger = leap.getFrontFinger();
-      frontFingerPosition = frontFinger.getPosition();
-      newZ = frontFingerPosition.y;
-
-      frontFingerPosition.y = map(frontFingerPosition.z, 80, 10, 0, height) + 150;
-      frontFingerPosition.x += 250;
-      frontFingerPosition.z = newZ;
-
-      Collections.sort(fingers, new XCoordinateComparator());
+      thumb = hand.getThumb();
+      indexFinger = hand.getIndexFinger();
+      indexFingerPosition = transformPosition(indexFinger.getPosition());
+      thumbPosition = transformPosition(thumb.getPosition());
 
       for (Finger f : fingers) {
-        PVector modifiedPosition = f.getPosition();
-        newZ = modifiedPosition.y;
-        modifiedPosition.y = map(modifiedPosition.z, 80, 10, 0, height) + 150;
-        modifiedPosition.x += 250;
-        modifiedPosition.z = newZ;
-        modifiedFingerPositions.add(modifiedPosition);
+        modifiedFingerPositions.add(transformPosition(f.getStabilizedPosition()));
       }
 
 
-      if (modifiedFingerPositions.size() >= 2) {
-        thumb = modifiedFingerPositions.get(0);
-        indexFinger = modifiedFingerPositions.get(1);
-        directionThumbFinger = PVector.sub(indexFinger, thumb);
-        centerThumbFinger = PVector.div(directionThumbFinger, 2);
-        centerThumbFinger.add(thumb);
-
-        distanceThumbToIndexFinger = directionThumbFinger.mag();
-        directionHandToPinchCenter = PVector.sub(centerThumbFinger, modifiedHandPosition);
+      if (indexFinger != null && thumb != null) {
+        directionThumbFinger = PVector.sub(indexFingerPosition, thumbPosition);
+        centerThumbIndexFinger = PVector.div(directionThumbFinger, 2);
+        centerThumbIndexFinger.add(thumbPosition);
       } 
-      else if (modifiedFingerPositions.size() == 1 && draggedTag == null) {
-        //might not be necessary
-        //println("set distanceThumbToIndexFinger high, to prevent accidentally dragging tags");
-        // if nothing is being dragged and only a single finger is visible, set the distance of thumb to index finger to something high
-        // to prevent accidentally dragging with a single finger
-        // distanceThumbToIndexFinger = width;
-      }
     }
   }
 
@@ -247,10 +224,8 @@ void update() {
   // maybe put this into the tag itself?
   if (draggedTag != null) {
     println("dragged tag : " + draggedTag.text);
-    //we want to arrage the tags circular around the mouse if there are min. 3 tags, otherwise just below the mouse
-    PVector estimatedPinchLocation = PVector.add(modifiedHandPosition, directionHandToPinchCenter);        
-    draggedTag.dimension.setLocation((int) (estimatedPinchLocation.x - draggedTag.dimension.width/2), 
-    (int) (estimatedPinchLocation.y - draggedTag.dimension.height/2));
+    draggedTag.dimension.setLocation((int) (centerThumbIndexFinger.x - draggedTag.dimension.width/2), 
+    (int) (centerThumbIndexFinger.y - draggedTag.dimension.height/2));
   }
 
   //arrange the added tags on the top
@@ -300,12 +275,14 @@ void draw() {
 
   // debug: show pinch coordinates
   if (debugEnabled == true) {
+    
+    
     if (modifiedFingerPositions.size() > 1) {
       fill(0, 255, 0);
-      ellipse(centerThumbFinger.x, centerThumbFinger.y, 10, 10);
+      ellipse(centerThumbIndexFinger.x, centerThumbIndexFinger.y, 10, 10);
       stroke(0, 128, 128);
       pushMatrix();
-      translate(thumb.x, thumb.y);
+      translate(thumbPosition.x, thumbPosition.y);
       line(0, 0, directionThumbFinger.x, directionThumbFinger.y);
       popMatrix();
     }
@@ -326,11 +303,16 @@ void draw() {
 
   // draw the cursors/circles where fingers are
   if (modifiedFingerPositions.size() > 0) {
-    fill(50, 180, 220, 128);
-    for (PVector position : modifiedFingerPositions) {
-      float diameterPointer = map(position.z, -height/2, height/2, 6, 30);
-      ellipse(position.x, position.y, diameterPointer, diameterPointer);
-    }
+    fill(50, 180, 220, 250);
+      float diameterPointer = map(indexFingerPosition.z, -height/2, height/2, 6, 30);
+      ellipse(indexFingerPosition.x, indexFingerPosition.y, diameterPointer, diameterPointer);
+      fill(50, 180, 220, 50);
+      if(previousPinchStrength > 0.3 && selectedTag != null){
+        fill(50, 180, 220, 150);
+      }
+      diameterPointer = map(thumbPosition.z, -height/2, height/2, 6, 30); 
+      ellipse(thumbPosition.x, thumbPosition.y, diameterPointer, diameterPointer);
+    
   }
 }
 
@@ -363,4 +345,26 @@ void keyPressed() {
   if (key == 'p') {
     tagCollection.selectPrevious();
   }
+}
+
+// SWIPE GESTURE
+void leapOnSwipeGesture(SwipeGesture g, int state){
+    int     id                  = g.getId();
+    Finger  finger              = g.getFinger();
+    PVector position            = g.getPosition();
+    PVector position_start      = g.getStartPosition();
+    PVector direction           = g.getDirection();
+    float   speed               = g.getSpeed();
+    long    duration            = g.getDuration();
+    float   duration_seconds    = g.getDurationInSeconds();
+
+    switch(state){
+        case 1: // Start
+            break;
+        case 2: // Update
+            break;
+        case 3: // Stop
+            println("SwipeGesture: "+id);
+            break;
+    }
 }

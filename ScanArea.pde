@@ -179,7 +179,6 @@ class ScanArea extends GuiElement {
 }
 
 void update() {
-
   if (calibrated == false) {
     println("caibrated false");
     calibrate();

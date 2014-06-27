@@ -8,6 +8,7 @@ class GuiElement {
   final Integer TIMEUNTILACTION = 800;
   boolean dragged = false;
   boolean draggable = false;
+  boolean allowDrag = false; // for example wait atleast 1 second until a tag becomes draggable
   boolean clicked = false;
   boolean previousPinchInside = false;
   float opacity = 255.0;
@@ -29,8 +30,7 @@ class GuiElement {
   GuiElement(int x_, int y_, PImage img, PImage hoverImg, Integer width_, Integer height_) {
     if (width_ == null && height_ == null) {
       this.dimension = new Rectangle(x_, y_, (int)img.width, (int) img.height);
-    } 
-    else {
+    } else {
       this.dimension = new Rectangle(x_, y_, width_, height_);
     }
     pixelImage = img;
@@ -41,8 +41,7 @@ class GuiElement {
   GuiElement(int x_, int y_, PShape img, PShape hoverImg, Integer width_, Integer height_) {
     if (width_ == null && height_ == null) {
       this.dimension = new Rectangle(x_, y_, (int) img.width, (int) img.height);
-    } 
-    else {
+    } else {
       this.dimension = new Rectangle(x_, y_, width_, height_);
     }
     pixelImage = null;
@@ -59,16 +58,16 @@ class GuiElement {
   }
 
   void updateDrag() {
-    //dragged will be set to true if finger has been > TIMEUNTILACION above this gui element, otherwise false
-    // dragged = (fingerOverTime > TIMEUNTILACTION);
     dragged = false;
-    if (modifiedFingerPositions.size() < 2) {
-      // set this GUI element to dragged if
-      //println("less than 2 fingers.");
-      if ((distanceThumbToIndexFinger < 130 && this.previousPinchInside == true)) { 
+    if(allowDrag == false) return;
+    
+    if (leap.hasFingers()) {
+      if (previousPinchStrength > 0.7 && this.previousPinchInside == true && fingerOverTime > 1000) { 
         println("drag");
         this.dragged = true;
         this.previousPinchInside = true;
+      } else {
+        this.previousPinchInside = this.dimension.contains((int) centerThumbIndexFinger.x, (int) centerThumbIndexFinger.y);
       }
     }
   }
@@ -82,33 +81,25 @@ class GuiElement {
       //reset the time the finger was over the the button
       fingerOverTime = 0.0;
       fingerOverStarted = 0.0;
-    } 
-    else if (leap.hasFingers() == true) {
+    } else if (leap.hasFingers() == true) {
       // check if finger is inside this GUI Element/button
       // if it is, add the passed time to *fingerOverTime*, so we can see
       // how long the finger has been hovering over the button
-      if (this.dimension.contains((int) frontFingerPosition.x, (int) frontFingerPosition.y)) {
+      if (this.dimension.contains((int) indexFingerPosition.x, (int) indexFingerPosition.y)) {
         if (fingerOverTime == 0.0) {
           //just entered the element with a finger
           fingerOverTime = 1.0;
           fingerOverStarted = millis();
-        } 
-        else {
+        } else {
           fingerOverTime =+ millis() - fingerOverStarted;
         }
-      } 
-      else {
+      } else {
         // no finger on the gui element
         fingerOverTime = 0.0;
       }
 
-      if (fingerOverStarted > TIMEUNTILACTION && frontFingerPosition.z > 700) {
+      if (fingerOverStarted > TIMEUNTILACTION && indexFingerPosition.z > 700) {
         clicked = true;
-      }
-
-
-      if (modifiedFingerPositions.size() >= 2 && this.dragged == false) {
-        previousPinchInside = this.dimension.contains((int) centerThumbFinger.x, (int) centerThumbFinger.y);
       }
     }
   }
@@ -122,36 +113,33 @@ class GuiElement {
   }
 
   void update() {
-
     updateFingerState();
-    if (draggable) updateDrag();
-
-
-    if (fingerOverTime > 0) {
-      hoverAnimationProgress = fingerOverTime / hoverAnimationDuration;
+    if (draggable){
+      allowDrag = (this.fingerOverTime > 1000);
+      updateDrag();
     }
+    if (fingerOverTime > 0) 
+      hoverAnimationProgress = fingerOverTime / hoverAnimationDuration;
+    
   }
 
   void display() {
     //only displaying functionality here
     if (pixelImage != null) {
       if (fingerOverTime > 0.0) {
-        tint(255, map(frontFingerPosition.z, 0.0, 900.0, 255, 0));
+        tint(255, map(indexFingerPosition.z, 0.0, 900.0, 255, 0));
         image(pixelImage, dimension.x, dimension.y, dimension.width, dimension.height);
-        tint(255, map(frontFingerPosition.z, 0.0, 900.0, 0, 255));
+        tint(255, map(indexFingerPosition.z, 0.0, 900.0, 0, 255));
         image(pixelHoverImage, dimension.x, dimension.y, dimension.width, dimension.height);
-      } 
-      else {
+      } else {
         tint(255, opacity);
         image(pixelImage, dimension.x, dimension.y, dimension.width, dimension.height);
         noTint();
       }
-    }
-    else if (vectorImage != null) {
+    } else if (vectorImage != null) {
       if (fingerOverTime > 0.0) {
         shape(vectorHoverImage, dimension.x, dimension.y);
-      } 
-      else {
+      } else {
         //vectorImage.disableStyle();
         //fill(255,0,0, map(mouseX, 0,width, 0, 255));
         shape(vectorImage, dimension.x, dimension.y);

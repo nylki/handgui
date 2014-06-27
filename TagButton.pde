@@ -12,6 +12,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
   Ani hoverAni_translatex = new Ani(this, 0, "scaleFactor", 1.0);
   Ani hoverAni_translatey = new Ani(this, 0, "scaleFactor", 1.0);
   boolean selected = false;
+  boolean draggable = true; 
   boolean visible = false;
   int row;
 
@@ -47,7 +48,8 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
 
 
   void updateDrag() {
-    //change draggedTag to this / remove. if necessary
+    // change draggedTag to this.
+	// saving previous dragging state, so we can see if a tag just got dropped
     draggedBeforeUpdate = this.dragged;
     super.updateDrag();
     if (this.dragged == true) 
@@ -59,24 +61,25 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
 
   void update() {
     super.update();
-    if (fingerOverTime > 0 && hoverAni_scale.isPlaying() == false && selectedTag == null) {
+    if (fingerOverTime > 200 && hoverAni_scale.isPlaying() == false && justSelected == false) {
       selectedTag = this;
+      justSelected = true;
       originalPosition.x = this.dimension.x;
       originalPosition.y = this.dimension.y;
       originalPosition.width = this.dimension.width;
       originalPosition.height = this.dimension.height;
-      hoverAni_scale = Ani.to(this.dimension, 0.2, "width", this.dimension.width * 2.2, Ani.BOUNCE_IN);
-      Ani.to(this.dimension, 0.2, "height", this.dimension.height * 2.2, Ani.BOUNCE_IN);
-      Ani.to(this.dimension, 0.2, "x", this.dimension.x - 40, Ani.BOUNCE_IN);
-      Ani.to(this.dimension, 0.2, "y", this.dimension.y - 40, Ani.BOUNCE_IN);
+      hoverAni_scale = Ani.to(this.dimension, 0.2, "width", this.dimension.width * 2, Ani.BOUNCE_IN_OUT);
+      Ani.to(this.dimension, 0.2, "height", this.dimension.height * 2, Ani.BOUNCE_IN_OUT);
+      Ani.to(this.dimension, 0.2, "x", this.dimension.x - 40, Ani.BOUNCE_IN_OUT);
+      Ani.to(this.dimension, 0.2, "y", this.dimension.y - 40, Ani.BOUNCE_IN_OUT);
     } 
-    else if (fingerOverTime == 0 && selectedTag == this) {
+    else if (justSelected == true && fingerOverTime == 0 && selectedTag == this && hoverAni_scale.isPlaying() == false) {
       selectedTag = null;
-
-      hoverAni_scale = Ani.to(this.dimension, 0.2, "x", originalPosition.x, Ani.BOUNCE_OUT);
-      Ani.to(this.dimension, 0.2, "y", originalPosition.y, Ani.BOUNCE_OUT);
-      Ani.to(this.dimension, 0.2, "width", originalPosition.width, Ani.BOUNCE_OUT);
-      Ani.to(this.dimension, 0.2, "height", originalPosition.height, Ani.BOUNCE_OUT);
+      justSelected = false;
+      hoverAni_scale = Ani.to(this.dimension, 0.2, "x", originalPosition.x, Ani.BOUNCE_IN_OUT);
+      Ani.to(this.dimension, 0.2, "y", originalPosition.y, Ani.BOUNCE_IN_OUT);
+      Ani.to(this.dimension, 0.2, "width", originalPosition.width, Ani.BOUNCE_IN_OUT);
+      Ani.to(this.dimension, 0.2, "height", originalPosition.height, Ani.BOUNCE_IN_OUT);
     }
 
 
@@ -115,8 +118,12 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
       textColor = color(50, 180, 220);
     } 
     else if (selectedTag == this || this.dragged == true) {
+      
       rectStrokeColor = color(0);
+      if(this.allowDrag) rectStrokeColor = color(0,255,0);
+
       rectFillColor = color(50, 180, 220);
+      
       textColor = color(0);
     } 
     else {
