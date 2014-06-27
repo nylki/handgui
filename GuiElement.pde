@@ -2,9 +2,14 @@ class GuiElement {
   Rectangle dimension;
   PImage pixelImage, pixelHoverImage;
   PShape vectorImage, vectorHoverImage;
-  float fingerOverTime_beforeUpdate = 0.0;
+  
+  
   float fingerOverTime = 0.0;
   float fingerOverStarted = 0.0;
+  float handOverTime = 0.0;
+  float handOverStarted = 0.0;  
+  
+  
   final Integer TIMEUNTILACTION = 800;
   boolean dragged = false;
   boolean draggable = false;
@@ -71,13 +76,15 @@ class GuiElement {
 
   void updateFingerState() {
     clicked = false;
-    fingerOverTime_beforeUpdate = fingerOverTime;
 
     if (leap.hasFingers() == false) {
       //reset the time the finger was over the the button
       fingerOverTime = 0.0;
       fingerOverStarted = 0.0;
+      handOverTime = 0.0;
+      handOverStarted = 0.0;
     } else if (leap.hasFingers() == true) {
+      
       // check if finger is inside this GUI Element/button
       // if it is, add the passed time to *fingerOverTime*, so we can see
       // how long the finger has been hovering over the button
@@ -94,9 +101,19 @@ class GuiElement {
         fingerOverTime = 0.0;
       }
 
-      if (fingerOverStarted > TIMEUNTILACTION && indexFingerPosition.z > 700) {
-        clicked = true;
-      }
+      // check for hands
+      if (this.dimension.contains((int) modifiedHandPosition.x, (int) modifiedHandPosition.y)) {
+        if (handOverTime == 0.0) {
+          //just entered the element with a finger
+          handOverTime = 1.0;
+          handOverStarted = millis();
+        } else {
+          handOverTime =+ millis() - handOverStarted;
+        }
+      } else {
+        // no finger on the gui element
+        handOverTime = 0.0;
+      }      
     }
   }
 

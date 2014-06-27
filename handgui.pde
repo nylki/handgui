@@ -55,7 +55,7 @@ boolean justSelected = false;
 ArrayList<PVector> modifiedFingerPositions;
 PVector modifiedHandPosition = new PVector(0, 0);
 
-PVector previousHand = new PVector(0, 0);
+PVector handPosition = new PVector(0, 0);
 PVector thumbPosition = new PVector(0, 0);
 PVector indexFingerPosition = new PVector(0, 0);
 PVector centerThumbIndexFinger = new PVector(0, 0);
@@ -77,6 +77,7 @@ int tagDistance = 20;
 ArrayList<PImage> imageList = new ArrayList<PImage>();
 
 
+// this function is used to transform the position of the fingers/hands because of the table projection we use
 PVector transformPosition(PVector oldPos) {
   PVector newPos = new PVector(0, 0, 0);
   float newZ = oldPos.y;
@@ -103,9 +104,7 @@ void setup() {
   } 
   else {
     println("Available cameras:");
-    for (int i = 0; i < cameras.length; i++) {
-      println(i + " : " + cameras[i]);
-    }
+    for (int i = 0; i < cameras.length; i++) { println(i + " : " + cameras[i]); }
     cam = new Capture(this, cameras[2]); //cam 13 is what we want
     cam.start();
   }
@@ -113,13 +112,11 @@ void setup() {
   fingers = new ArrayList<Finger>();
   modifiedFingerPositions = new ArrayList<PVector>();
 
-
   PImage scanButtonImage = loadImage("capture_2.png" );
   PImage scanButtonImage_hover = loadImage("capture_1.png" );
 
   PShape scanAreaImage = loadShape("frame-03.svg");
   scanButton = new GuiElement((int) (width - scanButtonImage.width/3) -200, (int) (height-scanButtonImage.height/3) -100, scanButtonImage, scanButtonImage_hover, (int) scanButtonImage.width/2, (int) scanButtonImage.height/2);
-
   scanArea = new ScanArea(0, 0, scanAreaImage, scanAreaImage, (int) scanAreaImage.width * 9/10, (int) scanAreaImage.height * 9/10);
 
   PImage caption1_image = loadImage("keyword.png");
@@ -143,7 +140,9 @@ void update() {
   scanArea.update();
   if (scanArea.calibrated == false) return;
   scanButton.update();
-  if (scanButton.clicked == true) {
+  // to take a photo several conditions have to be met, hand must have hovered atleast a second over button, grab strength must be high,
+  // no tag must be selected and the indexfinger can not be too far away from the palm center (so no grab with index finger stretched is alowed)
+  if (scanButton.handOverTime > 1000 && hand.getGrabStrength() > 0.98 && selectedTag == null && PVector.dist(indexFingerPosition, modifiedHandPosition) < 300) {
     scanArea.takePhoto();
   }
 
@@ -309,11 +308,21 @@ void draw() {
       float diameterPointer = map(indexFingerPosition.z, -height/2, height/2, 6, 30);
       ellipse(indexFingerPosition.x, indexFingerPosition.y, diameterPointer, diameterPointer);
       fill(50, 180, 220, 50);
-      if(previousPinchStrength > 0.3 && selectedTag != null){
+      
+      // show thumb for pinch gesture
+      if(previousPinchStrength > 0.4 && selectedTag != null){
         fill(50, 180, 220, 150);
       }
+      
       diameterPointer = map(thumbPosition.z, -height/2, height/2, 6, 30); 
       ellipse(thumbPosition.x, thumbPosition.y, diameterPointer, diameterPointer);
+      
+      // show hand for grab gesture
+      if(scanButton.handOverTime > 50 && selectedTag == null && PVector.dist(indexFingerPosition, modifiedHandPosition) < 500){
+        fill(50, 180, 220, 150);
+        float handRadius = hand.getSphereRadius();
+        ellipse(modifiedHandPosition.x, modifiedHandPosition.y, handRadius, handRadius);
+      }
     
   }
 }
@@ -362,11 +371,18 @@ void leapOnSwipeGesture(SwipeGesture g, int state){
 
     switch(state){
         case 1: // Start
+            
+            ellipse(position.x, position.y, 100,100);
+            println("SwipeGesture started " + id);
             break;
         case 2: // Update
+          fill(255,0,0);
+          ellipse(position.x, position.y, 100,100);
+          ellipse(position_start.x, position_start.y, 100,100);
+          println(".");
             break;
         case 3: // Stop
-            println("SwipeGesture: "+id);
+            println("SwipeGesture ended: "+id);
             break;
     }
 }

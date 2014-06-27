@@ -107,7 +107,6 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
   }
 
   void display() {
-    println("allow drag? " + this.allowDrag);
     if(this.visible == false) return;
     rectMode(CORNER);
     textFont(font);
