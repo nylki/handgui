@@ -11,8 +11,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
   Ani hoverAni_scale = new Ani(this, 0, "scaleFactor", 1.0);
   Ani hoverAni_translatex = new Ani(this, 0, "scaleFactor", 1.0);
   Ani hoverAni_translatey = new Ani(this, 0, "scaleFactor", 1.0);
-  boolean selected = false;
-  boolean draggable = true; 
+  boolean selected = false; 
   boolean visible = false;
   int row;
 
@@ -61,7 +60,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
 
   void update() {
     super.update();
-    if (fingerOverTime > 200 && hoverAni_scale.isPlaying() == false && justSelected == false) {
+    if (allowSelect && hoverAni_scale.isPlaying() == false && justSelected == false) {
       selectedTag = this;
       justSelected = true;
       originalPosition.x = this.dimension.x;
@@ -73,7 +72,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
       Ani.to(this.dimension, 0.2, "x", this.dimension.x - 40, Ani.BOUNCE_IN_OUT);
       Ani.to(this.dimension, 0.2, "y", this.dimension.y - 40, Ani.BOUNCE_IN_OUT);
     } 
-    else if (justSelected == true && fingerOverTime == 0 && selectedTag == this && hoverAni_scale.isPlaying() == false) {
+    else if (justSelected == true && allowSelect == false && selectedTag == this && hoverAni_scale.isPlaying() == false) {
       selectedTag = null;
       justSelected = false;
       hoverAni_scale = Ani.to(this.dimension, 0.2, "x", originalPosition.x, Ani.BOUNCE_IN_OUT);
@@ -100,7 +99,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
       if (scanArea.dimension.contains(this.dimension.x, this.dimension.y)) {
         addedTags.add(this);
       } 
-      else {
+      else { // remove tag from the added list (swipe gesture would be nice here)
         addedTags.remove(this);
         this.moveTo(originalPosition.x, originalPosition.y, 2.0);
       }
@@ -108,6 +107,7 @@ class TagButton extends GuiElement implements Comparable<TagButton> {
   }
 
   void display() {
+    println("allow drag? " + this.allowDrag);
     if(this.visible == false) return;
     rectMode(CORNER);
     textFont(font);

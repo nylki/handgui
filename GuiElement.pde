@@ -8,7 +8,7 @@ class GuiElement {
   final Integer TIMEUNTILACTION = 800;
   boolean dragged = false;
   boolean draggable = false;
-  boolean allowDrag = false; // for example wait atleast 1 second until a tag becomes draggable
+
   boolean clicked = false;
   boolean previousPinchInside = false;
   float opacity = 255.0;
@@ -16,16 +16,12 @@ class GuiElement {
   float hoverAnimationProgress = 0.0; //0.0 to 1.0
   int dummy = 0;
   Ani movingAnimation = Ani.to(this, 0, "dummy", 0, Ani.LINEAR);
-
-
-  /* we want to simulate a click by
-   1. was finger > TIMEUNTILACTION over button
-   2. if so: finger dissapears (touched down) -> was finger still in bounderies of
-   the button before the touch down? if true, then button is pressed
-   */
-
-
-
+  
+  
+  boolean allowDrag = false; // for example wait atleast 1 second until a tag becomes draggable
+  boolean allowSelect = false;
+  int timeToAllowSelection = 200;
+  int timeToAllowDragging = 1000; // both ^ will be updated after fingerStateUpdate
 
   GuiElement(int x_, int y_, PImage img, PImage hoverImg, Integer width_, Integer height_) {
     if (width_ == null && height_ == null) {
@@ -115,9 +111,10 @@ class GuiElement {
   void update() {
     updateFingerState();
     if (draggable){
-      allowDrag = (this.fingerOverTime > 1000);
+      allowDrag = (this.fingerOverTime > timeToAllowDragging);
       updateDrag();
     }
+    allowSelect = (this.fingerOverTime > timeToAllowSelection);
     if (fingerOverTime > 0) 
       hoverAnimationProgress = fingerOverTime / hoverAnimationDuration;
     

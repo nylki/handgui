@@ -19,8 +19,9 @@ import processing.video.*;
  ACHTUNG: DIESER TEST IST SO KALIBRIERT, DASS DIE LEAPMOTION IN DER MITTE UND UMGEDREHT
  DES TISCHES/DISPLAYS LIEGEN MUSS. Y WERTE WERDEN ANGEPASST. GESTEN AUS DEM FRAMEWORK SIND NICHT MÖGLICH
  */
-// TODO: AUFRÄUMEN: ersetze haltegeste mit pinch Geste: neu aufbauen: translation/verschieben des tags, direkt im Tag selber implementieren, bzw. hinzufügen: applyForce(), setLocation()
-// nur ein dragged objekt zulassen: weniger overhead: und vereinfachen!!
+
+
+// TODO: belasse added tags auf fläche, bewege diese nicht, wenn nächste Seite gewählt wird
 //modifier/Action tags: ocr, outline, scan QR-code, (Glitch!)
 
 boolean debugEnabled = false;
@@ -192,6 +193,7 @@ void update() {
   fingers.clear();
   if (leap.hasHands()) {
     hand = leap.getHands().get(0);
+    previousPinchStrength = hand.getPinchStrength();
     //change coordinates of hand and fingers relating to the different usage of the leap motion (tablet mode / 90 degree rotated)
     modifiedHandPosition = transformPosition(hand.getPosition());
 
@@ -278,8 +280,8 @@ void draw() {
     
     
     if (modifiedFingerPositions.size() > 1) {
-      fill(0, 255, 0);
-      ellipse(centerThumbIndexFinger.x, centerThumbIndexFinger.y, 10, 10);
+      fill(0, previousPinchStrength * 255, 0);
+      ellipse(centerThumbIndexFinger.x, centerThumbIndexFinger.y, 20, 20);
       stroke(0, 128, 128);
       pushMatrix();
       translate(thumbPosition.x, thumbPosition.y);
